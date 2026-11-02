@@ -3,3 +3,4 @@ dist/
 shots/*.png
 spike/shots/*.png
 .DS_Store
+docs/.hosting.env
