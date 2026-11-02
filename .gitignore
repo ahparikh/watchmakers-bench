@@ -1,0 +1,5 @@
+node_modules/
+dist/
+shots/*.png
+spike/shots/*.png
+.DS_Store
