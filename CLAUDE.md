@@ -8,7 +8,7 @@ An exploration, not yet a committed build. The idea: a browser app where anyone 
 
 - **Phase:** building the core. The escapement spike passed on 2026-11-01 (`SPIKE.md` has the evidence, the seven correction rounds, and the decision). `spike/` stays as reference; the app lives at the repo root.
 - **Order of work:** `/research` on the five physics claims → `verify-render` skill → sim core (TDD) → movement view → timegrapher → puzzle 1 → deploy → stretch.
-- **Hosting:** `docs/hosting.md` is the spec; a separate agent is executing it. Production URL: not yet.
+- **Hosting:** `docs/hosting.md` is the spec. Production: https://watchmakers-bench.pages.dev (push to `main`). Previews: `https://<branch>.watchmakers-bench.pages.dev`.
 - **Hard limit:** 8 hours total build time, tracked by Akash outside this repo. Treat every stretch item as optional.
 
 ## Decisions (grilled 2026-11-01, not in the brief)

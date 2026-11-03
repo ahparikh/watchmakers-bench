@@ -1,5 +1,9 @@
 # Hosting spec: The Watchmaker's Bench
 
+- **Production:** https://watchmakers-bench.pages.dev (branch `main`, verified 2026-11-03)
+- **Previews:** every other branch deploys to `https://<branch>.watchmakers-bench.pages.dev` (verified 2026-11-03)
+- **GitHub:** https://github.com/ahparikh/watchmakers-bench (public), Cloudflare Pages project `watchmakers-bench`
+
 Goal: pushing to `main` on GitHub redeploys the static site to Cloudflare Pages within a couple
 of minutes, with a preview URL for every other branch. No backend, no secrets, no runtime keys.
 

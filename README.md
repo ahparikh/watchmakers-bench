@@ -20,4 +20,4 @@ npm test          # vitest run (sim core)
 
 Static site on Cloudflare Pages. Pushing to `main` redeploys production; every other branch gets a preview URL. See `docs/hosting.md`.
 
-Production URL: not yet deployed
+Production URL: https://watchmakers-bench.pages.dev
