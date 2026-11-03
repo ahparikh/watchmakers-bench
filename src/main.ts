@@ -110,22 +110,6 @@ function frame(now: number) {
 }
 
 // ---------- controls ----------
-// Poising control: built here (not in index.html) because it arrived after the layout was handed to design.
-{
-  const footer = document.querySelector("footer")!;
-  const anchor = $("ctl-position");
-  const mk = (id: string, label: string, min: number, max: number, step: number) => {
-    const l = document.createElement("label"); l.id = `ctl-${id}`;
-    l.innerHTML = `${label} <input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="0" /><span class="value" id="${id}-value"></span>`;
-    footer.insertBefore(l, anchor);
-  };
-  mk("poise", "Poising: remove weight (µg·cm)", 0, 15, 0.25);
-  mk("poise-angle", "Poising: at rim position (°)", 0, 360, 5);
-  const wrap = document.createElement("div"); wrap.id = "ctl-poise-group"; // keep hide/show simple
-  footer.insertBefore(wrap, anchor);
-  wrap.append($("ctl-poise"), $("ctl-poise-angle"));
-  wrap.style.display = "contents";
-}
 function bindRange(id: string, key: keyof WatchSettings, fmt: (v: number) => string) {
   const el = $<HTMLInputElement>(id), out = $(`${id}-value`);
   const apply = () => { (user as any)[key] = Number(el.value); out.textContent = fmt(Number(el.value)); recompute(); drawControls(); };
