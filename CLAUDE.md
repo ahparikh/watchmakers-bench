@@ -9,7 +9,7 @@ An exploration, not yet a committed build. The idea: a browser app where anyone 
 - **Phase:** core built locally, awaiting deploy. The escapement spike passed on 2026-11-01 (`SPIKE.md`). `spike/` stays as reference; the app lives at the repo root.
 - **Done:** five research notes in `docs/research/`; `verify-render` skill; sim core (`src/core/`: escapement kinematics, period/regulator, amplitude/isochronism, poise, whole-watch reading, timegrapher) with 46 Vitest tests; movement and timegrapher views; four puzzles (1 and 2 have completion rules, 3 and 4 are diagnose-and-explain); `scripts/e2e-solve.mjs` proves puzzle 1 solves.
 - **Next:** deploy (hosting agent), then design polish, then stretch items in the brief's order. Run `node .claude/skills/verify-render/scripts/verify-render.mjs --root .` after any visual change.
-- **Hosting:** `docs/hosting.md` is the spec. Production: https://watchmakers-bench.pages.dev (push to `main`). Previews: `https://<branch>.watchmakers-bench.pages.dev`.
+- **Hosting:** `docs/hosting.md` is the spec. Production: https://watchmakers-bench.pages.dev (push to `main`). Previews: `https://<branch>.watchmakers-bench.pages.dev`. **Only the deploy agent pushes `main`**; ask it with a branch name and what changed (process in `docs/hosting.md`, "Deploy process").
 - **Hard limit:** 8 hours total build time, tracked by Akash outside this repo. Treat every stretch item as optional.
 
 ## Decisions (grilled 2026-11-01, not in the brief)

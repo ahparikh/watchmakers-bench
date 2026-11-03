@@ -64,3 +64,34 @@ to use it).
 - Push to any other branch → preview URL, production untouched.
 - A failing `tsc` makes the deploy fail visibly in the Cloudflare build log.
 - URLs recorded in this file and in `CLAUDE.md`.
+
+## Deploy process (agreed 2026-11-03)
+
+One agent, the **deploy agent** (session "hosting-env-setup-spec"), owns every push to `main`.
+Other agents do not push to `main`; a denied push in another session is expected, not a bug.
+
+**To request a deploy**, send the deploy agent a message (SendMessage, or tell Akash) with:
+
+1. The branch name and tip commit. The branch must be committed in the shared checkout
+   `/Users/ahp/.personal/code/websites/anthropic`; pushing it to origin is optional.
+2. What changed, in a sentence or two, and what Akash should look at to check it.
+3. What you verified: `npm test` count, `verify-render` result, anything manual.
+
+**What the deploy agent does**, in order, and stops at the first failure:
+
+1. Confirms the branch is a fast-forward of `main` and the working tree is clean enough to build.
+   It never discards or commits anyone else's uncommitted work.
+2. Runs `npm test` and `npm run build` on the tip.
+3. Pushes the branch to origin and waits for the Cloudflare preview build
+   (`https://<branch>.watchmakers-bench.pages.dev`). The GitHub check run "Cloudflare Pages"
+   on the commit must succeed.
+4. Fast-forwards `main` to the tip (`git push origin <sha>:main`) and waits for the production
+   build, then confirms https://watchmakers-bench.pages.dev serves the new bundle.
+5. Reports to Akash: what changed, which commits went live, and what to test in the browser.
+   Replies to the requesting agent if anything blocked the build.
+
+Merge commits are avoided: rebase onto `main` before asking if the branch has diverged.
+Docs-only commits also redeploy; that is fine, the build takes under a minute.
+
+To check a deploy by hand: `gh api repos/ahparikh/watchmakers-bench/commits/<sha>/check-runs`
+shows the Cloudflare Pages status; the Cloudflare dashboard has the build log.
