@@ -1,11 +1,12 @@
 // Does puzzle 1 report "solved" once the regulator is set right and the hold elapses?
 import { chromium } from "playwright";
 import { createServer } from "vite";
-const server = await createServer({ root: process.cwd(), server: { port: 5198, strictPort: true }, logLevel: "silent" });
+const server = await createServer({ root: process.cwd(), server: { port: 5198, strictPort: false }, logLevel: "silent" });
 await server.listen();
+const base = server.resolvedUrls.local[0];
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 900, height: 900 } });
-await page.goto("http://localhost:5198/");
+await page.goto(base);
 await page.waitForSelector("#puzzle h2");
 await page.evaluate(() => { const el = document.querySelector("#regulator"); el.value = "-1.2"; el.dispatchEvent(new Event("input")); });
 const before = await page.textContent("#puzzle");
