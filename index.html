@@ -5,17 +5,177 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>The Watchmaker's Bench</title>
 <style>
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 16px/1.5 ui-monospace, monospace; background: #f6f6f4; color: #222 }
-  main { max-width: 36rem; padding: 2rem }
-  h1 { font-size: 1.4rem; margin: 0 0 .5rem }
+  /* Tokens: a drafting sheet on a desk mat, drawn in blue-black ink, one ruby accent. */
+  :root {
+    --ground: #e2e5dd;
+    --sheet: #f5f6f1;
+    --sheet-2: #eceee7;
+    --ink: #1c2733;
+    --ink-2: #4a5663;
+    --ink-3: #7c8792;
+    --rule: #b9bfb4;
+    --rule-2: #d6dad1;
+    --ruby: #b2322b;
+    --steel: #2b5c8a;
+    --case: #202528;
+    --case-2: #2c3236;
+    --screen: #10261f;
+    --phosphor: #9be39b;
+    --phosphor-2: #e0e39b;
+    --font: "Avenir Next", "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box }
+  html { background: var(--ground) }
+  body {
+    margin: 0; padding: 18px;
+    font: 15px/1.5 var(--font); color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  .sheet {
+    max-width: 1280px; margin: 0 auto;
+    background: var(--sheet);
+    border: 1.5px solid var(--ink);
+    box-shadow: 0 0 0 4px var(--sheet), 0 0 0 5px var(--rule);
+  }
+
+  /* Title block, as on an engineering sheet: one row of ruled cells. */
+  header {
+    display: grid; grid-template-columns: 1fr auto auto; align-items: stretch;
+    border-bottom: 1.5px solid var(--ink);
+  }
+  header > * { padding: 10px 16px; border-left: 1px solid var(--ink) }
+  header > :first-child { border-left: 0 }
+  header h1 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: -0.01em; line-height: 1.2 }
+  header .tagline { margin: 2px 0 0; color: var(--ink-2); font-size: 13.5px }
+  header .cell { display: flex; flex-direction: column; justify-content: center; min-width: 160px }
+  header .cell small { font-size: 11.5px; color: var(--ink-3); line-height: 1.2 }
+  header .calibre { font-size: 14.5px }
+  header select { font: inherit; font-size: 14px; color: var(--ink); background: var(--sheet); border: 1px solid var(--ink); border-radius: 0; padding: 4px 8px; margin-top: 2px }
+
+  main {
+    display: grid; grid-template-columns: minmax(360px, 7fr) minmax(320px, 5fr); grid-template-rows: auto 1fr;
+    gap: 16px; padding: 16px;
+  }
+
+  /* The movement drawing is the hero: full height, on a faint drafting grid. */
+  #movement {
+    grid-row: 1 / 3;
+    border: 1px solid var(--ink); background:
+      linear-gradient(var(--rule-2) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(90deg, var(--rule-2) 1px, transparent 1px) 0 0 / 24px 24px,
+      #fbfcf8;
+    display: grid; place-items: center; min-height: 520px; padding: 6px;
+  }
+  #movement svg { width: 100%; max-height: 80vh; overflow: visible }
+
+  /* Timegrapher: one dark instrument case holding the screen and the readout strip. */
+  #timegrapher { background: var(--case); border: 1px solid var(--ink); padding: 10px 10px 6px; border-radius: 3px }
+  #timegrapher svg { width: 100%; display: block }
+  .screen { fill: var(--screen) }
+  .screen-edge { fill: none; stroke: #0a1712; stroke-width: 1 }
+  .axis { stroke: #2d5c4a; stroke-width: 1 }
+  .grid { stroke: #1b3a2f; stroke-width: 0.6 }
+  .axislabel { font: 10.5px var(--font); fill: #7ea893 }
+  .dot.p0 { fill: var(--phosphor) } .dot.p1 { fill: var(--phosphor-2) }
+  .warn { font: 12.5px var(--font); fill: #f0a070 }
+  .big { font: 600 28px var(--font); fill: #eef1ea; letter-spacing: -0.01em }
+  .unit { font: 400 13px var(--font); fill: #9aa39b }
+  .small { font: 11.5px var(--font); fill: #9aa39b }
+  .readouts .divider { stroke: var(--case-2); stroke-width: 1 }
+
+  /* Puzzle: a paper job card. */
+  #puzzle { border: 1px solid var(--ink); background: var(--sheet); padding: 14px 16px 16px; align-self: start }
+  #puzzle h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; line-height: 1.3; padding-bottom: 8px; border-bottom: 1px solid var(--rule) }
+  #puzzle p { margin: 8px 0; max-width: 60ch }
+  .symptom { color: var(--ink-2); font-style: italic }
+  .goal { margin: 8px 0 }
+  .hold { position: relative; height: 22px; border: 1px solid var(--ink); background: var(--sheet-2); margin-top: 12px }
+  .hold .bar { height: 100%; background: #bfe3c9; transition: width 120ms linear }
+  .hold span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12.5px; color: var(--ink) }
+  details { margin-top: 10px; border-top: 1px dashed var(--rule); padding-top: 8px }
+  details summary { cursor: pointer; color: var(--steel); font-weight: 500 }
+  details summary:hover { text-decoration: underline }
+  details p { color: var(--ink) }
+
+  /* Bench controls: a row of index sliders along the bottom rule. */
+  footer {
+    display: flex; flex-wrap: wrap; gap: 14px 28px; padding: 14px 16px 16px;
+    border-top: 1.5px solid var(--ink); align-items: flex-end; background: var(--sheet-2);
+  }
+  footer label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); min-width: 190px }
+  footer label[hidden] { display: none }
+  footer .value { color: var(--ink); font-size: 13.5px; min-height: 1.4em }
+  footer select, footer button {
+    font: inherit; font-size: 14px; color: var(--ink); background: var(--sheet);
+    border: 1px solid var(--ink); border-radius: 0; padding: 5px 10px; min-height: 36px;
+  }
+  footer button { cursor: pointer; min-width: 84px }
+  footer button:hover { background: #fff }
+  footer button:active { background: var(--ink); color: var(--sheet) }
+  #readout-rate { margin-left: auto; color: var(--ink-2); font-size: 13.5px; padding-bottom: 8px }
+
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; width: 190px; height: 28px; margin: 0;
+    background: transparent; cursor: pointer;
+  }
+  input[type=range]:focus { outline: none }
+  input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--ink) }
+  input[type=range]::-moz-range-track { height: 2px; background: var(--ink) }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 10px; height: 20px; margin-top: -9px;
+    background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 1px;
+  }
+  input[type=range]::-moz-range-thumb { width: 10px; height: 20px; background: var(--sheet); border: 1.5px solid var(--ink); border-radius: 1px }
+  input[type=range]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--steel); outline-offset: 2px }
+  input[type=range]:focus-visible::-moz-range-thumb { outline: 2px solid var(--steel); outline-offset: 2px }
+  select:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--steel); outline-offset: 2px }
+
+  @media (prefers-reduced-motion: reduce) { .hold .bar { transition: none } }
+
+  @media (max-width: 760px) {
+    body { padding: 8px }
+    .sheet { box-shadow: none }
+    header { grid-template-columns: 1fr 1fr }
+    header > :first-child { grid-column: 1 / 3; border-bottom: 1px solid var(--ink) }
+    header > :nth-child(2) { border-left: 0 }
+    header .cell { min-width: 0 }
+    main { grid-template-columns: 1fr; padding: 10px; gap: 10px }
+    #movement { grid-row: auto; min-height: 56vh }
+    #movement svg { max-height: 70vh }
+    footer { gap: 12px 16px; padding: 12px 10px 14px }
+    footer label, input[type=range] { width: 100%; min-width: 0 }
+    footer label { flex: 1 1 100% }
+    #readout-rate { margin-left: 0; padding-bottom: 0 }
+  }
 </style>
 </head>
 <body>
-  <main>
-    <h1>The Watchmaker's Bench</h1>
-    <p>Learn why a mechanical watch runs fast or slow by diagnosing a live, simulated movement. Under construction.</p>
-    <p id="status"></p>
-  </main>
+  <div class="sheet">
+    <header>
+      <div>
+        <h1>The Watchmaker's Bench</h1>
+        <p class="tagline">Diagnose a live movement and regulate it, reading the timegrapher the way a watchmaker does.</p>
+      </div>
+      <div class="cell"><small>Calibre</small><span class="calibre" id="calibre-name"></span></div>
+      <div class="cell"><small>Job</small><select id="puzzle-select" aria-label="Choose a puzzle"></select></div>
+    </header>
+    <main>
+      <div id="movement"></div>
+      <div id="timegrapher"></div>
+      <div id="puzzle"></div>
+    </main>
+    <footer>
+      <label id="ctl-regulator">Regulator index <input id="regulator" type="range" min="-3" max="3" step="0.05" value="0" /><span class="value" id="regulator-value"></span></label>
+      <label id="ctl-beat">Beat adjustment (stud) <input id="beat" type="range" min="-10" max="10" step="0.1" value="0" /><span class="value" id="beat-value"></span></label>
+      <label id="ctl-wind">State of wind <input id="wind" type="range" min="0" max="42" step="0.5" value="0" /><span class="value" id="wind-value"></span></label>
+      <label id="ctl-screws">Timing screws <input id="screws" type="range" min="-0.004" max="0.004" step="0.0001" value="0" /><span class="value" id="screws-value"></span></label>
+      <label id="ctl-position">Position <select id="position"></select></label>
+      <label>Movement speed <select id="speed"><option value="1">real time</option><option value="0.2">1/5</option><option value="0.05">1/20</option><option value="0.01">1/100</option></select></label>
+      <button id="pause">Pause</button>
+      <span id="readout-rate"></span>
+    </footer>
+  </div>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

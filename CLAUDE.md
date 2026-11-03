@@ -6,22 +6,34 @@ An exploration, not yet a committed build. The idea: a browser app where anyone 
 
 ## Status
 
-- **Phase:** building the core. The escapement spike passed on 2026-11-01 (`SPIKE.md` has the evidence, the seven correction rounds, and the decision). `spike/` stays as reference; the app lives at the repo root.
-- **Order of work:** `/research` on the five physics claims → `verify-render` skill → sim core (TDD) → movement view → timegrapher → puzzle 1 → deploy → stretch.
+- **Phase:** core built locally, awaiting deploy. The escapement spike passed on 2026-11-01 (`SPIKE.md`). `spike/` stays as reference; the app lives at the repo root.
+- **Done:** five research notes in `docs/research/`; `verify-render` skill; sim core (`src/core/`: escapement kinematics, period/regulator, amplitude/isochronism, poise, whole-watch reading, timegrapher) with 46 Vitest tests; movement and timegrapher views; four puzzles (1 and 2 have completion rules, 3 and 4 are diagnose-and-explain); `scripts/e2e-solve.mjs` proves puzzle 1 solves.
+- **Next:** deploy (hosting agent), then design polish, then stretch items in the brief's order. Run `node .claude/skills/verify-render/scripts/verify-render.mjs --root .` after any visual change.
 - **Hosting:** `docs/hosting.md` is the spec. Production: https://watchmakers-bench.pages.dev (push to `main`). Previews: `https://<branch>.watchmakers-bench.pages.dev`.
 - **Hard limit:** 8 hours total build time, tracked by Akash outside this repo. Treat every stretch item as optional.
 
 ## Decisions (grilled 2026-11-01, not in the brief)
 
 - **Two layers.** A lumped balance model (period from inertia and hairspring stiffness, amplitude from mainspring torque against losses, beat error from hairspring offset, isochronism and position as explicit corrections) produces the timegrapher numbers. The escapement drawing is kinematic and slaved to the balance angle. Rate is never read off the drawing.
-- **Escapement fidelity.** Keep the spike's simplifications in the core: pointed teeth, zero draw, no guard pin, fork linear in balance angle. Draw and club teeth are a stretch item below the brief's three.
-- **Two clocks.** The timegrapher accumulates ticks at accelerated sim time (about 60× real) so a slope shows within seconds; the movement view runs from real time down to 1/20. The readout labels the sim time span honestly.
+- **Escapement fidelity.** Keep the spike's simplifications in the core: pointed teeth, zero draw, no guard pin, fork linear in balance angle. `docs/research/05-swiss-lever-escapement.md` confirms the spike's angles but notes that pointed teeth are the English (ratchet) tooth form on a Swiss in-line layout, and that real draw is 12–15°. Say "lever escapement" in UI copy, not "Swiss lever", until club teeth exist. Draw's energy cost lives in the lumped model as a loss term, not in the drawing. Draw and club teeth are a stretch item below the brief's three.
+- **Two clocks.** The timegrapher accumulates ticks at accelerated sim time (10× real; 60× made the 60-second hold rule complete in one wall second) so a slope shows within seconds; the movement view runs from real time down to 1/20. The readout labels the sim time span honestly.
 - **Puzzle completion.** Solved when readouts stay in a target band for a stretch of sim time (for example rate within ±5 s/day and beat error under 0.5 ms for 60 sim-seconds), then an explanation card. Puzzle 3 ends with a two-choice question instead of a band.
 - **Picker.** Hidden until a second calibre exists; the calibre name shows as a static label. The catalog file exists from day one.
 - **First calibre:** 18,000 bph. **Lift angle:** fixed 52° label on the timegrapher, not a control.
 - **Mobile means:** panels stack, no horizontal scroll, controls tappable, puzzle 1 solvable. Nothing more.
 - **Docs layout:** `docs/research/` one file per physics claim; `docs/hosting.md`; design doc draws on `SPIKE.md`. The Harness Lab pivot brief should be added to `docs/` when Akash supplies it.
 - **Skills:** project-scoped under `.claude/skills/`; `verify-render` is seeded from `spike/shots.mjs`.
+
+## Ownership (four agents work in parallel from 2026-11-03)
+
+Edit only what you own. If you need a change elsewhere, write the request in `docs/handoffs.md` (one line: who, what, why) and leave the file alone.
+
+- **physics / puzzles** (this session's main agent): `src/core/`, `src/catalog/`, `src/app/ticker.ts`, puzzle *mechanics* in `src/puzzles/index.ts` (faults, bands, controls, specOverride), `tests/`, `docs/research/`, `GLOSSARY.md`, `docs/judgment-log.md`.
+- **design**: `index.html` markup and CSS, `src/view/*.ts` (drawing style, layout, colour, type), a new `src/view/theme.ts` if wanted. Must keep the `verify-render` contract (`?state=`, `window.__bench`, `data-state`) and every named state passing. Never changes what a view computes, only how it looks.
+- **onboarding**: puzzle *copy* in `src/puzzles/index.ts` (title, symptom, goal, explanation strings), a new `src/app/onboarding.ts` (first-run guidance, hints, control labels, the "how to read the trace" explainer), and the single mount line for it in `src/main.ts`. May add named states to `src/verify/states.ts` for its screens.
+- **hosting**: git, GitHub, Cloudflare, `README.md`, `docs/hosting.md`. Commits and pushes happen only here, and only with Akash's approval.
+
+`src/main.ts` is shared: physics touches the state and frame loop, onboarding adds one mount line, design does not touch it. Everyone runs `npm test` and the verify-render script before reporting done.
 
 ## Rules that outrank convenience
 

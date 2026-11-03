@@ -42,8 +42,14 @@ export function forkFor(p: EscapementParams, balanceAngle: number): number {
 /** A pose with the wheel settled against whichever stone the given balance angle locks. */
 export function initialPose(p: EscapementParams, balanceAngle: number): EscapementPose {
   const fork = forkFor(p, balanceAngle);
-  const wheel = advance(p, fork, 0, 2 * derived(p).pitch).wheel;
-  return { balanceAngle, forkAngle: fork, wheelAngle: wheel, phase: "lock", contact: classify(p, fork, wheel), violations: 0, maxNudge: 0 };
+  // Settle in small steps so a wheel that starts exactly on a face is recognised as blocked.
+  const pitch = derived(p).pitch;
+  let wheel = 0, blocked = false;
+  for (let i = 0; i < 16 && !blocked; i++) {
+    const r = advance(p, fork, wheel, pitch / 8);
+    wheel = r.wheel; blocked = r.blocked;
+  }
+  return { balanceAngle, forkAngle: fork, wheelAngle: wheel, phase: blocked ? "lock" : "drop", contact: blocked ? classify(p, fork, wheel) : null, violations: 0, maxNudge: 0 };
 }
 
 /** Advance the escapement by dt seconds while the balance moves from prev.balanceAngle to balanceAngle. */

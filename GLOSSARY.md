@@ -33,7 +33,8 @@ Physics claims behind them are checked in `docs/research/`.
 - **drop** — the escape wheel in free flight between leaving one stone and landing on the other. `drop` is the wheel rotation it spans. *(spike)*
 - **run to banking** — the lever's remaining travel after drop until it rests on a banking pin. *(spike)*
 - **banking** — the pins that limit lever travel; the lever rests on one between beats. *(spike)*
-- **draw** — an angle on the locking face so the wheel's torque pulls the lever onto its banking. Zero in the spike.
+- **draw** — an angle (12–15° in practice) on the locking face so the wheel's torque pulls the lever onto its banking and recoils the wheel slightly during unlock. Zero in the drawing; its energy cost is a loss term in the oscillator model.
+- **ratchet tooth / club tooth** — pointed teeth (English lever, all lift on the pallet) versus teeth with their own impulse face (Swiss, lift split roughly 3° tooth : 5.5° pallet). The drawing uses ratchet teeth on a Swiss in-line layout; UI copy says "lever escapement".
 - **impulse pin** (roller jewel) — the pin on the balance that enters the fork's **notch** each beat. *(spike)*
 - **lift angle** — the balance's travel while the impulse pin is in the notch. Timegraphers assume it (52° default) to compute amplitude. *(spike, as `liftAngle`)*
 - **tangential geometry** — the layout rule placing the fork pivot where lines tangent to the escape wheel meet, with the stones at the tangent points. *(spike)*
