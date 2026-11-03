@@ -26,4 +26,8 @@ export const STATES: Record<string, NamedState> = {
   "stopped": { describe: "Healthy watch at 42 h: no signal, balance still, readouts blank.", puzzle: null, settings: { hoursSinceWind: 42 }, simSeconds: 60, expect: { running: false } },
   "entry-impulse": { describe: "Movement frozen mid entry impulse: pin in notch, tooth on the entry impulse face.", puzzle: null, settings: {}, freeze: { phase: "impulse", beat: 0 }, simSeconds: 10, expect: { phase: "impulse" } },
   "exit-lock": { describe: "Movement frozen at exit lock: pin far from notch, tooth resting on the exit locking face.", puzzle: null, settings: {}, freeze: { phase: "lock", beat: 1 }, simSeconds: 10, expect: { phase: "lock" } },
+  // Onboarding screens (src/app/onboarding.ts reads these names and forces the matching layer).
+  "onboarding-first-run": { describe: "Puzzle 1 as a newcomer sees it: first-run strip above the pictures naming movement, timegrapher and job; controls uncovered.", puzzle: "runs-fast", settings: {}, simSeconds: 120, expect: { rateWithin: [35, 45], running: true } },
+  "onboarding-trace-explainer": { describe: "Puzzle 1 with the strip dismissed and 'How to read the trace' open under the job card.", puzzle: "runs-fast", settings: {}, simSeconds: 120, expect: { rateWithin: [35, 45], running: true } },
+  "onboarding-hint": { describe: "Puzzle 1 after 60 s without progress: one hint under the job card naming the regulator and the rate.", puzzle: "runs-fast", settings: {}, simSeconds: 120, expect: { rateWithin: [35, 45], running: true } },
 };

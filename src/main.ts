@@ -11,6 +11,7 @@ import { renderMovement } from "./view/movement";
 import { renderTimegrapher } from "./view/timegrapher";
 import { PUZZLES, type Puzzle } from "./puzzles";
 import { STATES } from "./verify/states";
+import { mountOnboarding } from "./app/onboarding";
 
 const calibre = VINTAGE_18000;
 const esc = calibre.escapement;
@@ -209,4 +210,5 @@ if (q.has("state") && STATES[q.get("state")!]) {
 };
 
 if (!named) { loadPuzzle(PUZZLES[0].id); pose = initialPose(esc, balanceAngleAt(animTime)); drawMovement(); drawTimegrapher(); }
+mountOnboarding(); // onboarding: first-run guide, trace explainer, hints (src/app/onboarding.ts)
 requestAnimationFrame(frame);
