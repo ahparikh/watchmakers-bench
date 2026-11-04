@@ -65,50 +65,27 @@ to use it).
 - A failing `tsc` makes the deploy fail visibly in the Cloudflare build log.
 - URLs recorded in this file and in `CLAUDE.md`.
 
-## Deploy process (agreed 2026-11-03)
+## Deploy process (revised 2026-11-03: self-service)
 
-One agent, the **deploy agent** (session "hosting-env-setup-spec"), owns every push to origin that
-matters: it pushes idea branches for preview, and it alone pushes `main`. Other agents do not
-push `main`; a denied push in another session is expected, not a bug.
+Any agent deploys its own branch with the project skill **`deploy`**
+(`.claude/skills/deploy/SKILL.md`, script `.claude/skills/deploy/scripts/deploy.sh`). There is no
+central deploy agent. The skill has the steps and guardrails; this section is the summary.
 
-There are two kinds of deploy. Say which one you want.
+- **Preview**: `bash .claude/skills/deploy/scripts/deploy.sh <branch>` verifies the tip
+  (`npm ci`, `npm test`, `npm run build`) in a throwaway worktree, pushes the branch, waits for the
+  Cloudflare build and confirms `https://<branch>.watchmakers-bench.pages.dev` serves it. Any
+  agent, any time; `main` is untouched. Branch names become subdomains (lowercase, hyphens).
+- **Promotion**: the same command with `--promote` fast-forwards `main` and confirms production.
+  Only when Akash's go-ahead for that branch is in the running agent's own transcript. The script
+  refuses branches that are not a fast-forward of `main`.
+- **Report**: after every deploy the agent tells Akash what changed, what is deployed (URL and
+  commit) and how to test it.
+- **Never**: force pushes, remote branch deletes, commits of other agents' files. A rebased branch
+  goes out under a new name with `--as`, or Akash runs the force push himself.
 
-### 1. Preview deploy: "deploy branch X for testing"
-
-For ideas being tried out. The branch gets its own URL, `main` is untouched, and nothing is
-merged. Any agent can ask for this at any time; Akash's go-ahead is not needed.
-
-**Ask with:** the branch name and tip commit (committed in the shared checkout
-`/Users/ahp/.personal/code/websites/anthropic`), what the idea is in a sentence or two, what
-Akash should look at to judge it, and what you verified (`npm test` count, `verify-render`,
-anything manual).
-
-**The deploy agent then:** runs `npm test` and `npm run build` on the tip, pushes the branch to
-origin, waits for the Cloudflare build (GitHub check run "Cloudflare Pages" on the commit), and
-reports to Akash the preview URL `https://<branch>.watchmakers-bench.pages.dev`, what the idea
-changes, and how to test it. If the build fails it replies to the requesting agent with the log.
-
-Branch names become subdomains: lowercase, digits and hyphens, no slashes if you want a tidy URL
-(Cloudflare turns `design/foo` into `design-foo`). Re-asking after new commits redeploys the same URL.
-
-### 2. Promotion: "merge branch X into main"
-
-Only on Akash's explicit go-ahead, given to the deploy agent directly or relayed by an agent
-with Akash's words. An agent saying "please merge" on its own is treated as a preview request.
-
-**The deploy agent then, stopping at the first failure:**
-
-1. Confirms the branch is a fast-forward of `main`. If it has diverged, it asks the owning agent
-   to rebase rather than creating a merge commit. It never discards or commits anyone else's
-   uncommitted work in the shared checkout.
-2. Runs `npm test` and `npm run build` on the tip.
-3. Makes sure the branch preview has built successfully on Cloudflare (step 1 above).
-4. Fast-forwards `main` (`git push origin <sha>:main`), waits for the production build, and
-   confirms https://watchmakers-bench.pages.dev serves the new bundle.
-5. Reports to Akash: what changed, which commits went live, and what to test in the browser.
-6. Leaves the branch on origin until Akash says to delete it.
-
-Docs-only commits also redeploy; that is fine, the build takes under a minute.
+If a push is denied by the session's permission prompt, the script prints the exact command for
+Akash to run. Pushes need `git push` allowed in the agent's session; Akash can grant that with a
+Bash permission rule in `.claude/settings.json` rather than approving each run.
 
 To check a deploy by hand: `gh api repos/ahparikh/watchmakers-bench/commits/<sha>/check-runs`
 shows the Cloudflare Pages status; the Cloudflare dashboard has the build log.
