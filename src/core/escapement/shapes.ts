@@ -233,7 +233,9 @@ export function shapes(p: EscapementParams, pose: Pose): Shapes {
     lever: leverRest.map(rot),
     arms: [arm(entryStone), arm(exitStone)],
     bankings,
-    impulsePin: add(balanceCentre, polar(pinOrbit, rad(-90 + pose.balanceAngle))),
+    // Positive fork angle swings the lever head toward -x (CCW about a pivot below it), so the
+    // pin must also move toward -x for positive balance angle, or it would sit outside the horns.
+    impulsePin: add(balanceCentre, polar(pinOrbit, rad(-90 - pose.balanceAngle))),
     pinRadius: pinOrbit,
     balanceRadius: p.balanceRadius,
     wheelRadius: p.wheelRadius,
