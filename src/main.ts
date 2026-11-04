@@ -8,6 +8,7 @@ import { CONTACT_TOL } from "./core/escapement/kinematics";
 import { analyze, type Reading } from "./core/timegrapher/analyze";
 import { advanceTicks, emptyWindow, type TickWindow } from "./app/ticker";
 import { renderMovement } from "./view/movement";
+import { adjustmentShapes } from "./core/escapement/adjustments";
 import { renderTimegrapher } from "./view/timegrapher";
 import { PUZZLES, type Puzzle } from "./puzzles";
 import { STATES } from "./verify/states";
@@ -34,6 +35,7 @@ let tg: Reading | null = null;
 let heldSeconds = 0;
 let solved = false;
 let answered: number | null = null;
+let revealHeavySpot = false;
 let lastWall = performance.now();
 
 const spec = (): WatchSpec => (puzzle?.specOverride ? puzzle.specOverride(calibre.watch) : calibre.watch);
@@ -59,10 +61,13 @@ function balanceAngleAt(t: number) {
 
 function recompute() {
   reading = readWatch(spec(), effective());
+  if (animPaused) drawMovement();
 }
 
 function drawMovement() {
-  movementEl.innerHTML = renderMovement(esc, pose, animTime * 1000);
+  const eff = effective();
+  const adj = adjustmentShapes(esc, { ...eff, balanceAngle: pose.balanceAngle, revealHeavySpot: revealHeavySpot || (solved && puzzle?.id === "position-error") });
+  movementEl.innerHTML = renderMovement(esc, pose, animTime * 1000, adj);
   if (!reading.running) movementEl.querySelector(".phase")!.textContent = "STOPPED · no torque at the escape wheel";
 }
 function drawTimegrapher() {
@@ -171,6 +176,8 @@ if (q.has("state") && STATES[q.get("state")!]) {
   const s = STATES[named];
   loadPuzzle(s.puzzle);
   Object.assign(user, s.settings);
+  $<HTMLSelectElement>("position").value = user.position;
+  revealHeavySpot = !!s.reveal;
   recompute();
   // Accumulate ticks for the requested sim span, then freeze everything.
   win = advanceTicks(win, reading, s.simSeconds, TRACE_BEATS);
