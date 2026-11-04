@@ -7,7 +7,7 @@ import { derived } from "./core/escapement/params";
 import { CONTACT_TOL } from "./core/escapement/kinematics";
 import { analyze, type Reading } from "./core/timegrapher/analyze";
 import { advanceTicks, emptyWindow, type TickWindow } from "./app/ticker";
-import { renderMovement } from "./view/movement";
+import { renderMovement, type Highlight } from "./view/movement";
 import { adjustmentShapes } from "./core/escapement/adjustments";
 import { renderTimegrapher } from "./view/timegrapher";
 import { PUZZLES, type Puzzle } from "./puzzles";
@@ -36,6 +36,10 @@ let heldSeconds = 0;
 let solved = false;
 let answered: number | null = null;
 let revealHeavySpot = false;
+/** The control being moved, highlighted on the drawing until `hotUntil` (wall ms). */
+let hot: Highlight = null;
+let hotUntil = 0;
+function touch(part: Highlight) { hot = part; hotUntil = performance.now() + 1200; if (animPaused) drawMovement(); }
 let lastWall = performance.now();
 
 const spec = (): WatchSpec => (puzzle?.specOverride ? puzzle.specOverride(calibre.watch) : calibre.watch);
@@ -66,8 +70,9 @@ function recompute() {
 
 function drawMovement() {
   const eff = effective();
-  const adj = adjustmentShapes(esc, { ...eff, balanceAngle: pose.balanceAngle, revealHeavySpot: revealHeavySpot || (solved && puzzle?.id === "position-error") });
-  movementEl.innerHTML = renderMovement(esc, pose, animTime * 1000, adj);
+  const adj = adjustmentShapes(esc, { ...eff, balanceAngle: pose.balanceAngle, amplitudeDeg: reading.amplitudeDeg, revealHeavySpot: revealHeavySpot || (solved && puzzle?.id === "position-error") });
+  if (hot && performance.now() > hotUntil) hot = null;
+  movementEl.innerHTML = renderMovement(esc, pose, animTime * 1000, adj, hot);
   if (!reading.running) movementEl.querySelector(".phase")!.textContent = "STOPPED · no torque at the escape wheel";
 }
 function drawTimegrapher() {
@@ -116,15 +121,17 @@ function frame(now: number) {
 }
 
 // ---------- controls ----------
-function bindRange(id: string, key: keyof WatchSettings, fmt: (v: number) => string) {
+function bindRange(id: string, key: keyof WatchSettings, fmt: (v: number) => string, part: Highlight) {
   const el = $<HTMLInputElement>(id), out = $(`${id}-value`);
   const apply = () => { (user as any)[key] = Number(el.value); out.textContent = fmt(Number(el.value)); recompute(); drawControls(); };
-  el.oninput = apply; apply();
+  el.oninput = () => { apply(); touch(part); };
+  el.onpointerdown = () => touch(part);
+  apply();
 }
-bindRange("regulator", "regulatorIndex", (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}° ${v > 0 ? "(toward F)" : v < 0 ? "(toward S)" : ""}`);
-bindRange("beat", "beatOffsetDeg", (v) => `${v.toFixed(1)}°`);
-bindRange("wind", "hoursSinceWind", (v) => `${v.toFixed(0)} h since wound`);
-bindRange("screws", "inertiaTrim", (v) => `${(v * 100).toFixed(2)} % inertia`);
+bindRange("regulator", "regulatorIndex", (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}° ${v > 0 ? "(toward F)" : v < 0 ? "(toward S)" : ""}`, "regulator");
+bindRange("beat", "beatOffsetDeg", (v) => `${v.toFixed(1)}°`, "beat");
+bindRange("wind", "hoursSinceWind", (v) => `${v.toFixed(0)} h since wound`, "wind");
+bindRange("screws", "inertiaTrim", (v) => `${(v * 100).toFixed(2)} % inertia`, "screws");
 {
   const amt = $<HTMLInputElement>("poise"), ang = $<HTMLInputElement>("poise-angle");
   const apply = () => {
@@ -132,9 +139,11 @@ bindRange("screws", "inertiaTrim", (v) => `${(v * 100).toFixed(2)} % inertia`);
     $("poise-value").textContent = `${Number(amt.value).toFixed(2)} µg·cm`; $("poise-angle-value").textContent = `${ang.value}° on the rim`;
     recompute(); drawControls();
   };
-  amt.oninput = apply; ang.oninput = apply; apply();
+  amt.oninput = () => { apply(); touch("poise"); }; ang.oninput = () => { apply(); touch("poise"); };
+  amt.onpointerdown = () => touch("poise"); ang.onpointerdown = () => touch("poise");
+  apply();
 }
-$<HTMLSelectElement>("position").onchange = (e) => { user.position = (e.target as HTMLSelectElement).value as WatchSettings["position"]; recompute(); drawControls(); };
+$<HTMLSelectElement>("position").onchange = (e) => { user.position = (e.target as HTMLSelectElement).value as WatchSettings["position"]; recompute(); drawControls(); touch("position"); };
 $<HTMLSelectElement>("position").innerHTML = POSITIONS.map((p) => `<option value="${p.id}">${p.label}</option>`).join("");
 $<HTMLSelectElement>("speed").onchange = (e) => { animSpeed = Number((e.target as HTMLSelectElement).value); };
 $("pause").onclick = () => { animPaused = !animPaused; $("pause").textContent = animPaused ? "Play" : "Pause"; };
@@ -178,6 +187,7 @@ if (q.has("state") && STATES[q.get("state")!]) {
   Object.assign(user, s.settings);
   $<HTMLSelectElement>("position").value = user.position;
   revealHeavySpot = !!s.reveal;
+  if (s.highlight) { hot = s.highlight; hotUntil = Infinity; }
   recompute();
   // Accumulate ticks for the requested sim span, then freeze everything.
   win = advanceTicks(win, reading, s.simSeconds, TRACE_BEATS);

@@ -30,7 +30,10 @@ const centreMark = (c: Vec, r: number) =>
 const pivot = (c: Vec) =>
   `<circle class="jewel" cx="${c.x}" cy="${c.y}" r="3.4"/><circle class="pivot" cx="${c.x}" cy="${c.y}" r="1.3"/>`;
 
-export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: number, adj?: AdjustmentShapes): string {
+/** Which drawn part each control acts on. */
+export type Highlight = "regulator" | "beat" | "wind" | "screws" | "poise" | "position" | null;
+
+export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: number, adj?: AdjustmentShapes, hot: Highlight = null): string {
   const g = shapes(p, s);
   const R = p.wheelRadius;
   // Square viewBox centred between wheel and balance, so the whole movement can rotate for
@@ -80,28 +83,39 @@ export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: 
   const adjustments = adj ? (() => {
     const hs = `<polyline class="hairspring" points="${pts(adj.hairspring)}"/>`;
     const t = adj.studTrack;
+    // Arc from a0 to a1 (degrees, counter-clockwise if a1 > a0), any span under 360°.
     const arc = (c: Vec, rr: number, a0: number, a1: number) => {
-      const p0 = add(c, polar(rr, rad(a0))), p1 = add(c, polar(rr, rad(a1)));
-      return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${rr} ${rr} 0 0 1 ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
+      const span = Math.max(-359.9, Math.min(359.9, a1 - a0));
+      const p0 = add(c, polar(rr, rad(a0))), p1 = add(c, polar(rr, rad(a0 + span)));
+      return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${rr} ${rr} 0 ${Math.abs(span) > 180 ? 1 : 0} ${span > 0 ? 1 : 0} ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
     };
-    const stud = `<path class="track" d="${arc(t.centre, t.radius + 5, t.fromDeg, t.toDeg)}"/><circle class="stud" cx="${adj.stud.x}" cy="${adj.stud.y}" r="2.4"/>`;
+    const stud = `<g class="part ${hot === "beat" ? "hot" : ""}"><path class="track" d="${arc(t.centre, t.radius + 5, t.fromDeg, t.toDeg)}"/><circle class="stud" cx="${adj.stud.x}" cy="${adj.stud.y}" r="2.4"/></g>`;
     const rg = adj.regulator;
     // Draw only the outer part of the index arm, from inside the rim to the pointer tip, so it
     // does not cross the spiral.
     const armStart = add(rg.arm[0], polar(adj.studTrack.radius - 6, rad(rg.indexDeg)));
-    const regulator = `<line class="regulator" x1="${armStart.x}" y1="${armStart.y}" x2="${rg.arm[1].x}" y2="${rg.arm[1].y}"/>` +
+    const regulator = `<g class="part ${hot === "regulator" ? "hot" : ""}"><line class="regulator" x1="${armStart.x}" y1="${armStart.y}" x2="${rg.arm[1].x}" y2="${rg.arm[1].y}"/>` +
       rg.pins.map((q) => `<circle class="regpin" cx="${q.x}" cy="${q.y}" r="1.1"/>`).join("") +
       `<path class="track" d="${arc(t.centre, t.radius * 1.3 + 4, rg.scale.slow && 0 + (adj.regulator.indexDeg - 10), adj.regulator.indexDeg + 10)}"/>` +
       `<text class="mark" transform="translate(${rg.scale.fast.x},${rg.scale.fast.y}) scale(1,-1)" text-anchor="middle">F</text>` +
-      `<text class="mark" transform="translate(${rg.scale.slow.x},${rg.scale.slow.y}) scale(1,-1)" text-anchor="middle">S</text>`;
-    const screws = adj.screws.map((sc) => `<circle class="screw" cx="${sc.head.x}" cy="${sc.head.y}" r="2.2"/>`).join("");
-    const cut = adj.poiseCut ? `<circle class="cut" cx="${adj.poiseCut.at.x}" cy="${adj.poiseCut.at.y}" r="${Math.min(5, 1 + adj.poiseCut.depth)}"/>` : "";
+      `<text class="mark" transform="translate(${rg.scale.slow.x},${rg.scale.slow.y}) scale(1,-1)" text-anchor="middle">S</text></g>`;
+    const screws = `<g class="part ${hot === "screws" ? "hot" : ""}">` + adj.screws.map((sc) => `<circle class="screw" cx="${sc.head.x}" cy="${sc.head.y}" r="2.2"/>`).join("") + `</g>`;
+    // The poise cut is always drawn while the poising control is active, so an amount of zero still shows where the cut would go.
+    const cutShape = adj.poiseCut ?? (hot === "poise" ? { at: adj.screws[0].head, depth: 0 } : null);
+    const cut = cutShape ? `<g class="part ${hot === "poise" ? "hot" : ""}"><circle class="cut" cx="${cutShape.at.x}" cy="${cutShape.at.y}" r="${Math.min(5, 1 + cutShape.depth)}"/></g>` : "";
     const heavy = adj.heavySpot ? `<circle class="heavy" cx="${adj.heavySpot.at.x}" cy="${adj.heavySpot.at.y}" r="4"/>` : "";
-    return { hs, stud, regulator, screws, cut, heavy };
+    // Swing: from the notch centre to each extreme, one arc per direction just outside the rim
+    // (the two overlap past 180°, so they sit at different radii), with a ghost pin at each end.
+    const sw = adj.swingArc;
+    const mid = (sw.fromDeg + sw.toDeg) / 2, amp = (sw.toDeg - sw.fromDeg) / 2;
+    const rimR = g.balanceRadius;
+    const ghost = (deg: number) => { const q = add(sw.centre, polar(sw.radius, rad(deg))); return `<circle class="ghostpin" cx="${q.x}" cy="${q.y}" r="2.6"/>`; };
+    const swing = hot === "wind" ? `<g class="part hot"><path class="swing" d="${arc(sw.centre, rimR + 6, mid, mid + amp)}"/><path class="swing" d="${arc(sw.centre, rimR + 10, mid, mid - amp)}"/>${ghost(mid + amp)}${ghost(mid - amp)}</g>` : "";
+    return { hs, stud, regulator, screws, cut, heavy, swing };
   })() : null;
   const gravity = adj ? (adj.view.gravity === "down"
-    ? `<g class="gravity" transform="translate(${half - 22},${-top + 20})"><line x1="0" y1="0" x2="0" y2="18"/><polyline points="-4,13 0,18 4,13"/><text x="7" y="14">g</text></g>`
-    : `<g class="gravity" transform="translate(${half - 22},${-top + 24})"><circle cx="0" cy="0" r="6"/>${adj.view.gravity === "into-page" ? `<line x1="-4" y1="-4" x2="4" y2="4"/><line x1="-4" y1="4" x2="4" y2="-4"/>` : `<circle cx="0" cy="0" r="1.4" fill="currentColor"/>`}<text x="10" y="4">g</text></g>`) : "";
+    ? `<g class="gravity ${hot === "position" ? "hot" : ""}" transform="translate(${half - 22},${-top + 20})"><line x1="0" y1="0" x2="0" y2="18"/><polyline points="-4,13 0,18 4,13"/><text x="7" y="14">g</text></g>`
+    : `<g class="gravity ${hot === "position" ? "hot" : ""}" transform="translate(${half - 22},${-top + 24})"><circle cx="0" cy="0" r="6"/>${adj.view.gravity === "into-page" ? `<line x1="-4" y1="-4" x2="4" y2="4"/><line x1="-4" y1="4" x2="4" y2="-4"/>` : `<circle cx="0" cy="0" r="1.4" fill="currentColor"/>`}<text x="10" y="4">g</text></g>`) : "";
   const note = s.contact ? `${PHASE_NAME[s.phase]} on the ${s.contact.stone} pallet, ${s.contact.face} face` : `${PHASE_NAME[s.phase]}, wheel free`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-half} ${-top} ${2 * half} ${top - bottom}" data-phase="${s.phase}" font-family="Avenir Next, Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif">
@@ -136,6 +150,13 @@ export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: 
     .cut { fill: ${PAPER}; stroke: ${INK}; stroke-width: 0.8; stroke-dasharray: 1.5 1 }
     .heavy { fill: ${RUBY}; stroke: ${INK}; stroke-width: 0.6 }
     .gravity { stroke: #4a5663; fill: none; stroke-width: 1; color: #4a5663 } .gravity text { stroke: none; fill: #4a5663; font-size: 9px; font-style: italic }
+    .swing { fill: none; stroke: ${RUBY}; stroke-width: 1.6; stroke-linecap: round }
+    .ghostpin { fill: none; stroke: ${RUBY}; stroke-width: 0.9; stroke-dasharray: 1.5 1 }
+    /* A control is being moved: its part glows. */
+    .part.hot line, .part.hot path, .part.hot circle { stroke: ${RUBY}; stroke-width: 2.2; filter: drop-shadow(0 0 2.5px ${RUBY}99) }
+    .part.hot circle.stud, .part.hot circle.regpin, .part.hot circle.screw { fill: ${RUBY_PALE} }
+    .part.hot text { fill: ${RUBY}; font-weight: 700 }
+    .gravity.hot { stroke: ${RUBY}; color: ${RUBY}; stroke-width: 1.8 } .gravity.hot text { fill: ${RUBY} }
   </style>
   <g transform="scale(1,-1) rotate(${rotation} 0 ${midY})">
     <circle class="centreline" cx="0" cy="0" r="${R}"/>
@@ -155,7 +176,7 @@ export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: 
     ${centreMark(g.balanceCentre, g.balanceRadius + 8)}
     <circle class="balance" cx="${g.balanceCentre.x}" cy="${g.balanceCentre.y}" r="${g.balanceRadius}"/>
     ${spokes}
-    ${adjustments ? adjustments.screws + adjustments.cut + adjustments.heavy + adjustments.hs + adjustments.stud + adjustments.regulator : ""}
+    ${adjustments ? adjustments.swing + adjustments.screws + adjustments.cut + adjustments.heavy + adjustments.hs + adjustments.stud + adjustments.regulator : ""}
     ${pivot(g.balanceCentre)}
     <circle class="pin" cx="${g.impulsePin.x}" cy="${g.impulsePin.y}" r="2.6"/>
     ${contactDot}

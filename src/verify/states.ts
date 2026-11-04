@@ -1,6 +1,7 @@
 /** Named states for the verify-render skill. Each sets puzzle, settings and animation phase. */
 import type { WatchSettings } from "../core/watch";
 import type { Phase } from "../core/escapement/kinematics";
+import type { Highlight } from "../view/movement";
 
 export interface NamedState {
   describe: string;
@@ -8,6 +9,8 @@ export interface NamedState {
   settings: Partial<WatchSettings>;
   /** Freeze the animation at the middle of this escapement phase on this beat (0 entry, 1 exit). */
   freeze?: { phase: Phase; beat: 0 | 1; frac?: number };
+  /** Highlight the part a control acts on, as while that slider is being dragged. */
+  highlight?: Highlight;
   /** Show the hidden heavy spot (as after solving puzzle 4). */
   reveal?: boolean;
   /** Simulated seconds of ticks to accumulate before the shot. */
@@ -25,10 +28,11 @@ export const STATES: Record<string, NamedState> = {
   "position-crown-up": { describe: "Puzzle 4 crown up: amplitude ~250°, heavy spot at the bottom, poise error showing as a loss of several s/day.", puzzle: "position-error", settings: { position: "CU" }, simSeconds: 120, expect: { amplitudeWithin: [245, 255], rateWithin: [-15, -2], running: true } },
   "position-crown-down": { describe: "Puzzle 4 crown down: the whole movement is rotated so the crown side points down the page, gravity arrow shown; amplitude ~250°, heavy spot at the top, poise error a gain.", puzzle: "position-error", settings: { position: "CD" }, simSeconds: 120, expect: { amplitudeWithin: [245, 255], rateWithin: [2, 15], running: true } },
   "position-poised": { describe: "Puzzle 4 crown up after removing 10 µg·cm at 0°: rate back near zero.", puzzle: "position-error", settings: { position: "CU", poiseCorrection: 10e-11, poiseCorrectionDeg: 0 }, simSeconds: 120, expect: { rateWithin: [-2, 2], running: true } },
-  "visual-regulator-fast": { describe: "Free play, regulator at +2.5° (toward F): the index lever and its pins have moved toward the stud; hairspring and F/S marks visible on the balance.", puzzle: null, settings: { regulatorIndex: 2.5 }, simSeconds: 30, expect: { running: true } },
-  "visual-beat-stud": { describe: "Free play, beat adjustment +8°: the stud has moved along its track; the regulator stayed put.", puzzle: null, settings: { beatOffsetDeg: 8 }, simSeconds: 30, expect: { running: true } },
-  "visual-screws-out": { describe: "Free play, timing screws +0.4 %: eight screw heads stand proud of the rim.", puzzle: null, settings: { inertiaTrim: 0.004 }, simSeconds: 30, expect: { running: true } },
+  "visual-regulator-fast": { describe: "Free play, regulator at +2.5° (toward F) while its slider is being dragged: the index pointer, pins and F/S marks glow ruby; the pins have moved toward the stud.", puzzle: null, settings: { regulatorIndex: 2.5 }, highlight: "regulator", simSeconds: 30, expect: { running: true } },
+  "visual-beat-stud": { describe: "Free play, beat adjustment +8° while dragging: the stud and its track glow; the stud has moved along the track; the regulator stayed put.", puzzle: null, settings: { beatOffsetDeg: 8 }, highlight: "beat", simSeconds: 30, expect: { running: true } },
+  "visual-screws-out": { describe: "Free play, timing screws +0.4 % while dragging: eight glowing screw heads stand proud of the rim.", puzzle: null, settings: { inertiaTrim: 0.004 }, highlight: "screws", simSeconds: 30, expect: { running: true } },
   "visual-poise-cut": { describe: "Puzzle 4 solved view: heavy spot shown on the rim and a dashed cut where 10 µg·cm was removed at the same angle.", puzzle: "position-error", settings: { position: "CU", poiseCorrection: 10e-11, poiseCorrectionDeg: 0 }, reveal: true, simSeconds: 30, expect: { running: true } },
+  "visual-wind-swing": { describe: "Free play at 24 h while dragging the wind slider: a ruby arc around the balance shows the swing, ±250° about the notch centre.", puzzle: null, settings: { hoursSinceWind: 24 }, highlight: "wind", simSeconds: 30, expect: { running: true, amplitudeWithin: [245, 255] } },
   "stopped": { describe: "Healthy watch at 42 h: no signal, balance still, readouts blank.", puzzle: null, settings: { hoursSinceWind: 42 }, simSeconds: 60, expect: { running: false } },
   "entry-unlock": { describe: "Movement frozen mid unlock on the entry side: pin inside the notch, between the horns, lever starting to lift the entry stone.", puzzle: null, settings: {}, freeze: { phase: "unlock", beat: 0 }, simSeconds: 10, expect: { phase: "unlock" } },
   "entry-impulse": { describe: "Movement frozen mid entry impulse: pin in notch, tooth on the entry impulse face.", puzzle: null, settings: {}, freeze: { phase: "impulse", beat: 0 }, simSeconds: 10, expect: { phase: "impulse" } },

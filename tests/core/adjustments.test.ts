@@ -6,7 +6,7 @@ import { len, sub } from "../../src/core/escapement/geom2d";
 
 const esc = VINTAGE_18000.escapement;
 const B = fixedPoints(esc).balanceCentre;
-const base: AdjustmentInput = { balanceAngle: 0, regulatorIndex: 0, beatOffsetDeg: 0, inertiaTrim: 0, position: "DU", poiseCorrection: 0, poiseCorrectionDeg: 0, heavySpotDeg: 0, unbalance: 0, revealHeavySpot: false };
+const base: AdjustmentInput = { balanceAngle: 0, regulatorIndex: 0, beatOffsetDeg: 0, inertiaTrim: 0, position: "DU", poiseCorrection: 0, poiseCorrectionDeg: 0, heavySpotDeg: 0, unbalance: 0, revealHeavySpot: false, amplitudeDeg: 280 };
 const angleOf = (q: { x: number; y: number }) => (Math.atan2(q.y - B.y, q.x - B.x) * 180) / Math.PI;
 const norm = (d: number) => ((d % 360) + 540) % 360 - 180;
 
@@ -60,5 +60,13 @@ describe("position view", () => {
     expect(adjustmentShapes(esc, { ...base, position: "CD" }).view).toEqual({ rotationDeg: -90, gravity: "down" });
     expect(adjustmentShapes(esc, { ...base, position: "DU" }).view).toEqual({ rotationDeg: 0, gravity: "into-page" });
     expect(adjustmentShapes(esc, { ...base, position: "DD" }).view.gravity).toBe("out-of-page");
+  });
+});
+
+describe("swing arc", () => {
+  it("spans ±amplitude about the notch centre on the pin orbit", () => {
+    const s = adjustmentShapes(esc, { ...base, amplitudeDeg: 250 });
+    expect(s.swingArc.toDeg - s.swingArc.fromDeg).toBe(500);
+    expect((s.swingArc.fromDeg + s.swingArc.toDeg) / 2).toBe(-90);
   });
 });

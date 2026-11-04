@@ -25,6 +25,8 @@ export interface AdjustmentInput {
   heavySpotDeg: number;
   unbalance: number;
   revealHeavySpot: boolean;
+  /** Current swing amplitude, degrees, for the swing arc. */
+  amplitudeDeg: number;
 }
 
 export interface AdjustmentShapes {
@@ -42,6 +44,8 @@ export interface AdjustmentShapes {
   poiseCut: { at: Vec; depth: number; angleDeg: number } | null;
   /** The hidden heavy spot, if revealed. */
   heavySpot: { at: Vec; angleDeg: number } | null;
+  /** The balance's swing: the impulse pin's arc from −amplitude to +amplitude about the notch centre. */
+  swingArc: { centre: Vec; radius: number; fromDeg: number; toDeg: number };
   /** Rotation to apply to the whole movement so "crown down" points down the page, and where gravity points. */
   view: { rotationDeg: number; gravity: "into-page" | "out-of-page" | "down" };
 }
@@ -116,7 +120,9 @@ export function adjustmentShapes(p: EscapementParams, a: AdjustmentInput): Adjus
     ? { at: add(B, polar(R, rad(a.heavySpotDeg - a.balanceAngle))), angleDeg: a.heavySpotDeg - a.balanceAngle }
     : null;
 
-  return { hairspring, stud, studTrack, regulator, screws, poiseCut, heavySpot, view: VIEW[a.position] };
+  const { pinOrbit } = fixedPoints(p);
+  const swingArc = { centre: B, radius: pinOrbit, fromDeg: -90 - a.amplitudeDeg, toDeg: -90 + a.amplitudeDeg };
+  return { hairspring, stud, studTrack, regulator, screws, poiseCut, heavySpot, swingArc, view: VIEW[a.position] };
 }
 
 const scaleNeg = (q: Vec): Vec => v(-q.x, -q.y);
