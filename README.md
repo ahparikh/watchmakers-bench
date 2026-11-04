@@ -18,6 +18,6 @@ npm test          # vitest run (sim core)
 
 ## Deployment
 
-Static site on Cloudflare Pages. Pushing to `main` redeploys production; every other branch gets a preview URL. The deploy agent owns both: ask it to deploy a branch for testing (preview URL, main untouched), and only Akash's go-ahead promotes a branch into `main`. See `docs/hosting.md`, "Deploy process".
+Static site on Cloudflare Pages. Pushing to `main` redeploys production; every other branch gets a preview URL. Agents deploy with the `deploy` skill (`.claude/skills/deploy/`): preview any branch any time, promote to `main` only on Akash's go-ahead. See `docs/hosting.md`, "Deploy process".
 
 Production URL: https://watchmakers-bench.pages.dev
