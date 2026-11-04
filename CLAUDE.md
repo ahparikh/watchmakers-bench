@@ -6,10 +6,9 @@ An exploration, not yet a committed build. The idea: a browser app where anyone 
 
 ## Status
 
-- **Phase:** core built locally, awaiting deploy. The escapement spike passed on 2026-11-01 (`SPIKE.md`). `spike/` stays as reference; the app lives at the repo root.
-- **Done:** five research notes in `docs/research/`; `verify-render` skill; sim core (`src/core/`: escapement kinematics, period/regulator, amplitude/isochronism, poise, whole-watch reading, timegrapher) with 46 Vitest tests; movement and timegrapher views; four puzzles (1 and 2 have completion rules, 3 and 4 are diagnose-and-explain); `scripts/e2e-solve.mjs` proves puzzle 1 solves.
-- **Next:** deploy (hosting agent), then design polish, then stretch items in the brief's order. Run `node .claude/skills/verify-render/scripts/verify-render.mjs --root .` after any visual change.
-- **Hosting:** `docs/hosting.md` is the spec. Production: https://watchmakers-bench.pages.dev (branch `main`). Previews: `https://<branch>.watchmakers-bench.pages.dev`. **The deploy agent owns pushes.** Ask it to "deploy branch X for testing" to get a preview URL (any time, main untouched); only Akash's go-ahead promotes a branch into `main`. Process in `docs/hosting.md`, "Deploy process".
+- **Phase:** core deployed to production (2026-11-03). The escapement spike passed on 2026-11-01 (`SPIKE.md`). `spike/` stays as reference; the app lives at the repo root.
+- **Next:** stretch items in the brief's order, each on its own branch via a preview deploy. Run `node .claude/skills/verify-render/scripts/verify-render.mjs --root .` after any visual change.
+- **Hosting:** `docs/hosting.md` is the spec. Production: https://watchmakers-bench.pages.dev (branch `main`). Previews: `https://<branch>.watchmakers-bench.pages.dev`. Deploy with the `deploy` skill (`.claude/skills/deploy/`): preview any branch any time; `--promote` to `main` only with Akash's go-ahead in your own transcript.
 - **Hard limit:** 8 hours total build time, tracked by Akash outside this repo. Treat every stretch item as optional.
 
 ## Decisions (grilled 2026-11-01, not in the brief)
@@ -31,7 +30,7 @@ Edit only what you own. If you need a change elsewhere, write the request in `do
 - **physics / puzzles** (this session's main agent): `src/core/`, `src/catalog/`, `src/app/ticker.ts`, puzzle *mechanics* in `src/puzzles/index.ts` (faults, bands, controls, specOverride), `tests/`, `docs/research/`, `GLOSSARY.md`, `docs/judgment-log.md`.
 - **design**: `index.html` markup and CSS, `src/view/*.ts` (drawing style, layout, colour, type), a new `src/view/theme.ts` if wanted. Must keep the `verify-render` contract (`?state=`, `window.__bench`, `data-state`) and every named state passing. Never changes what a view computes, only how it looks.
 - **onboarding**: puzzle *copy* in `src/puzzles/index.ts` (title, symptom, goal, explanation strings), a new `src/app/onboarding.ts` (first-run guidance, hints, control labels, the "how to read the trace" explainer), and the single mount line for it in `src/main.ts`. May add named states to `src/verify/states.ts` for its screens.
-- **hosting**: git, GitHub, Cloudflare, `README.md`, `docs/hosting.md`. Commits and pushes happen only here, and only with Akash's approval.
+- **hosting**: git, GitHub, Cloudflare, `README.md`, `docs/hosting.md`. Every agent pushes and deploys its own branch with the `deploy` skill; `main` moves only on Akash's go-ahead.
 
 `src/main.ts` is shared: physics touches the state and frame loop, onboarding adds one mount line, design does not touch it. Everyone runs `npm test` and the verify-render script before reporting done.
 
@@ -46,7 +45,7 @@ Edit only what you own. If you need a change elsewhere, write the request in `do
 
 ## Stack (planned)
 
-Vite + TypeScript, plain SVG, Vitest for the sim core, Playwright for render screenshots and numeric geometry assertions, static deploy (Vercel or Cloudflare Pages). No backend, no runtime LLM, no keys. Node 22 is installed.
+No backend, no runtime LLM, no keys. Node 22 is installed.
 
 ## Workflow
 

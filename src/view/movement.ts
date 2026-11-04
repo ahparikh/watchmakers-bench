@@ -43,9 +43,9 @@ export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: 
       `<line class="face" x1="${st.corner.x}" y1="${st.corner.y}" x2="${st.letoff.x}" y2="${st.letoff.y}"/>`;
   };
   const bankings = g.bankings.map((q) => `<circle class="banking" cx="${q.x}" cy="${q.y}" r="2"/>`).join("");
-  // Balance: three crossing arms through the centre, turning with the balance.
+  // Balance: three crossing arms through the centre, turning with the balance (same sense as the impulse pin in shapes()).
   const spokes = [0, 60, 120].map((a) => {
-    const ang = rad(a + s.balanceAngle);
+    const ang = rad(a - s.balanceAngle);
     const q1 = add(g.balanceCentre, polar(g.balanceRadius, ang)), q2 = add(g.balanceCentre, polar(g.balanceRadius, ang + Math.PI));
     return `<line class="spoke" x1="${q1.x}" y1="${q1.y}" x2="${q2.x}" y2="${q2.y}"/>`;
   }).join("");
