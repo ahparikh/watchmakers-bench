@@ -88,16 +88,24 @@ function drawMovement() {
 function drawTimegrapher() {
   tgEl.innerHTML = renderTimegrapher({ reading: tg, nominalPeriod: T, liftAngle: calibre.liftAngle, running: reading.running, knocking: reading.knocking, spanSeconds: (TRACE_BEATS * T) / 2, speedup: SIM_SPEEDUP });
 }
+let lastPuzzleHtml = "";
+/** Re-renders only when the card's content changes: it is called every frame for the hold bar. */
 function drawPuzzle() {
-  if (!puzzle) { puzzleEl.innerHTML = `<h2>Free play</h2><p>Adjust anything. The timegrapher shows what a watchmaker would see.</p>`; return; }
+  const html = puzzleHtml();
+  if (html === lastPuzzleHtml) return;
+  lastPuzzleHtml = html;
+  puzzleEl.innerHTML = html;
+  puzzleEl.querySelectorAll<HTMLButtonElement>(".choice").forEach((b) => (b.onclick = () => { answered = Number(b.dataset.choice); if (answered === puzzle!.question!.correct) solved = true; drawPuzzle(); }));
+}
+function puzzleHtml(): string {
+  if (!puzzle) return `<h2>Free play</h2><p>Adjust anything. The timegrapher shows what a watchmaker would see.</p>`;
   const idx = PUZZLES.indexOf(puzzle);
-  puzzleEl.innerHTML = `<h2>Puzzle ${idx + 1} · ${puzzle.title}</h2>
+  return `<h2>Puzzle ${idx + 1} · ${puzzle.title}</h2>
     <p class="symptom">${puzzle.symptom}</p>
     <p class="goal"><strong>Goal:</strong> ${puzzle.goal}</p>
     ${Number.isFinite(puzzle.holdSeconds) ? `<div class="hold"><div class="bar" style="width:${Math.min(100, (100 * heldSeconds) / puzzle.holdSeconds).toFixed(1)}%"></div><span>${solved ? "solved" : `${heldSeconds.toFixed(0)} / ${puzzle.holdSeconds} s in band`}</span></div>` : ""}
     ${puzzle.question ? `<div class="question"><p>${puzzle.question.prompt}</p>${puzzle.question.choices.map((c, i) => `<button class="choice ${answered === i ? (i === puzzle!.question!.correct ? "right" : "wrong") : ""}" data-choice="${i}">${c}</button>`).join("")}${answered !== null ? `<p class="verdict">${answered === puzzle.question.correct ? puzzle.question.whyCorrect : "Not quite. Watch the rate as the wind runs down, then try again."}</p>` : ""}</div>` : ""}
     ${solved ? `<details open><summary>Why it worked</summary><p>${puzzle.explanation}</p></details>` : ""}`;
-  puzzleEl.querySelectorAll<HTMLButtonElement>(".choice").forEach((b) => (b.onclick = () => { answered = Number(b.dataset.choice); if (answered === puzzle!.question!.correct) solved = true; drawPuzzle(); }));
 }
 function drawControls() {
   const show = (name: string) => !puzzle || puzzle.controls.includes(name as never) || puzzle.controls.length === 0;
