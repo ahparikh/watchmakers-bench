@@ -3,6 +3,7 @@ import { type EscapementParams } from "../core/escapement/params";
 import { type EscapementPose } from "../core/escapement/kinematics";
 import { shapes, stoneOutline, type Stone } from "../core/escapement/shapes";
 import { type Polygon, type Vec, polar, add } from "../core/escapement/geom2d";
+import { type AdjustmentShapes } from "../core/escapement/adjustments";
 
 const pts = (poly: Polygon) => poly.map((q) => `${q.x.toFixed(3)},${q.y.toFixed(3)}`).join(" ");
 const rad = (deg: number) => (deg * Math.PI) / 180;
@@ -29,13 +30,22 @@ const centreMark = (c: Vec, r: number) =>
 const pivot = (c: Vec) =>
   `<circle class="jewel" cx="${c.x}" cy="${c.y}" r="3.4"/><circle class="pivot" cx="${c.x}" cy="${c.y}" r="1.3"/>`;
 
-export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: number): string {
+export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: number, adj?: AdjustmentShapes): string {
   const g = shapes(p, s);
   const R = p.wheelRadius;
-  // Margins: room above the balance for the two-line caption, a little either side.
-  const top = g.balanceCentre.y + g.balanceRadius + 46;
-  const bottom = -R - 22;
-  const half = Math.max(R, g.balanceRadius) + 40;
+  // Square viewBox centred between wheel and balance, so the whole movement can rotate for
+  // the watch positions without leaving the frame. Caption sits in the top margin.
+  const extentTop = g.balanceCentre.y + g.balanceRadius * 1.3;
+  const extentBottom = -R - 10;
+  const midY = (extentTop + extentBottom) / 2;
+  const rotation = adj?.view.rotationDeg ?? 0;
+  // Dial positions keep the tall frame; vertical positions use a square one so the rotated
+  // movement stays inside it.
+  const tallHalf = Math.max(R, g.balanceRadius) + 40;
+  const side = rotation === 0 ? 2 * tallHalf : Math.max(2 * tallHalf, extentTop - extentBottom + 52);
+  const half = side / 2;
+  const top = rotation === 0 ? extentTop + 30 : midY + half;   // y-up top edge
+  const bottom = rotation === 0 ? extentBottom - 12 : midY - half;
   const colour = PHASE_COLOUR[s.phase];
   const stone = (st: Stone, name: string) => {
     const active = s.contact?.stone === name;
@@ -67,6 +77,31 @@ export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: 
     }
     return best ? `<circle class="contact" cx="${best.x}" cy="${best.y}" r="3.2"/>` : "";
   })();
+  const adjustments = adj ? (() => {
+    const hs = `<polyline class="hairspring" points="${pts(adj.hairspring)}"/>`;
+    const t = adj.studTrack;
+    const arc = (c: Vec, rr: number, a0: number, a1: number) => {
+      const p0 = add(c, polar(rr, rad(a0))), p1 = add(c, polar(rr, rad(a1)));
+      return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${rr} ${rr} 0 0 1 ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
+    };
+    const stud = `<path class="track" d="${arc(t.centre, t.radius + 5, t.fromDeg, t.toDeg)}"/><circle class="stud" cx="${adj.stud.x}" cy="${adj.stud.y}" r="2.4"/>`;
+    const rg = adj.regulator;
+    // Draw only the outer part of the index arm, from inside the rim to the pointer tip, so it
+    // does not cross the spiral.
+    const armStart = add(rg.arm[0], polar(adj.studTrack.radius - 6, rad(rg.indexDeg)));
+    const regulator = `<line class="regulator" x1="${armStart.x}" y1="${armStart.y}" x2="${rg.arm[1].x}" y2="${rg.arm[1].y}"/>` +
+      rg.pins.map((q) => `<circle class="regpin" cx="${q.x}" cy="${q.y}" r="1.1"/>`).join("") +
+      `<path class="track" d="${arc(t.centre, t.radius * 1.3 + 4, rg.scale.slow && 0 + (adj.regulator.indexDeg - 10), adj.regulator.indexDeg + 10)}"/>` +
+      `<text class="mark" transform="translate(${rg.scale.fast.x},${rg.scale.fast.y}) scale(1,-1)" text-anchor="middle">F</text>` +
+      `<text class="mark" transform="translate(${rg.scale.slow.x},${rg.scale.slow.y}) scale(1,-1)" text-anchor="middle">S</text>`;
+    const screws = adj.screws.map((sc) => `<circle class="screw" cx="${sc.head.x}" cy="${sc.head.y}" r="2.2"/>`).join("");
+    const cut = adj.poiseCut ? `<circle class="cut" cx="${adj.poiseCut.at.x}" cy="${adj.poiseCut.at.y}" r="${Math.min(5, 1 + adj.poiseCut.depth)}"/>` : "";
+    const heavy = adj.heavySpot ? `<circle class="heavy" cx="${adj.heavySpot.at.x}" cy="${adj.heavySpot.at.y}" r="4"/>` : "";
+    return { hs, stud, regulator, screws, cut, heavy };
+  })() : null;
+  const gravity = adj ? (adj.view.gravity === "down"
+    ? `<g class="gravity" transform="translate(${half - 22},${-top + 20})"><line x1="0" y1="0" x2="0" y2="18"/><polyline points="-4,13 0,18 4,13"/><text x="7" y="14">g</text></g>`
+    : `<g class="gravity" transform="translate(${half - 22},${-top + 24})"><circle cx="0" cy="0" r="6"/>${adj.view.gravity === "into-page" ? `<line x1="-4" y1="-4" x2="4" y2="4"/><line x1="-4" y1="4" x2="4" y2="-4"/>` : `<circle cx="0" cy="0" r="1.4" fill="currentColor"/>`}<text x="10" y="4">g</text></g>`) : "";
   const note = s.contact ? `${PHASE_NAME[s.phase]} on the ${s.contact.stone} pallet, ${s.contact.face} face` : `${PHASE_NAME[s.phase]}, wheel free`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-half} ${-top} ${2 * half} ${top - bottom}" data-phase="${s.phase}" font-family="Avenir Next, Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif">
@@ -91,8 +126,18 @@ export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: 
     .label { font-size: 9.5px; fill: #4a5663 }
     .phase { font-size: 12.5px; font-weight: 600; fill: ${colour} }
     .swatch { fill: ${colour} }
+    .hairspring { fill: none; stroke: ${INK}; stroke-width: 0.55 }
+    .stud { fill: ${INK} }
+    .track { fill: none; stroke: ${INK_FAINT}; stroke-width: 0.6 }
+    .regulator { stroke: ${INK}; stroke-width: 1.6; stroke-linecap: round }
+    .regpin { fill: ${INK} }
+    .mark { font-size: 8px; font-weight: 600; fill: #4a5663 }
+    .screw { fill: ${BRASS}; stroke: ${INK}; stroke-width: 0.7 }
+    .cut { fill: ${PAPER}; stroke: ${INK}; stroke-width: 0.8; stroke-dasharray: 1.5 1 }
+    .heavy { fill: ${RUBY}; stroke: ${INK}; stroke-width: 0.6 }
+    .gravity { stroke: #4a5663; fill: none; stroke-width: 1; color: #4a5663 } .gravity text { stroke: none; fill: #4a5663; font-size: 9px; font-style: italic }
   </style>
-  <g transform="scale(1,-1)">
+  <g transform="scale(1,-1) rotate(${rotation} 0 ${midY})">
     <circle class="centreline" cx="0" cy="0" r="${R}"/>
     <circle class="wheel" cx="0" cy="0" r="${0.8 * R}"/>
     <circle class="wheel-web" cx="0" cy="0" r="${0.68 * R}"/>
@@ -110,10 +155,12 @@ export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: 
     ${centreMark(g.balanceCentre, g.balanceRadius + 8)}
     <circle class="balance" cx="${g.balanceCentre.x}" cy="${g.balanceCentre.y}" r="${g.balanceRadius}"/>
     ${spokes}
+    ${adjustments ? adjustments.screws + adjustments.cut + adjustments.heavy + adjustments.hs + adjustments.stud + adjustments.regulator : ""}
     ${pivot(g.balanceCentre)}
     <circle class="pin" cx="${g.impulsePin.x}" cy="${g.impulsePin.y}" r="2.6"/>
     ${contactDot}
   </g>
+  ${gravity}
   <rect class="swatch" x="${-half + 4}" y="${-top + 6}" width="4" height="11"/>
   <text class="phase" x="${-half + 13}" y="${-top + 16}">${note}</text>
   <text class="label" x="${-half + 13}" y="${-top + 29}">balance ${s.balanceAngle.toFixed(1)}°, fork ${s.forkAngle.toFixed(2)}°, wheel ${s.wheelAngle.toFixed(2)}°${timeMs === undefined ? "" : `, t = ${timeMs.toFixed(1)} ms`}</text>
