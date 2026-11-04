@@ -1,4 +1,5 @@
-// Onboarding checks: the first-visit guide (steps, skip, persistence, replay), the hint timer, mobile layout.
+// Onboarding checks: the first-visit guide (free play, fixed card, spotlight frame, skip, persistence, replay),
+// the hint timer, mobile layout.
 import { chromium } from "playwright";
 import { createServer } from "vite";
 import { createServer as net } from "node:net";
@@ -9,6 +10,8 @@ const browser = await chromium.launch();
 const out = [];
 const check = (name, ok, detail = "") => out.push(`${ok ? "ok  " : "FAIL"} ${name} ${detail}`);
 const url = `http://localhost:${port}/`;
+const rect = (page, sel) => page.$eval(sel, (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
+const contains = (a, b) => a.l <= b.l + 1 && a.t <= b.t + 1 && a.r >= b.r - 1 && a.b >= b.b - 1;
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = []; page.on("pageerror", (e) => errs.push(String(e)));
@@ -16,38 +19,54 @@ try {
   await page.goto(url);
   await page.waitForSelector("#guide");
   check("guide opens on first visit", await page.isVisible("#guide"));
+  check("guide switches to free play", (await page.inputValue("#puzzle-select")) === "");
+  check("free play shows every slider", await page.isVisible("#ctl-beat") && await page.isVisible("#ctl-wind") && await page.isVisible("#ctl-position"));
   check("welcome has Start and Skip", (await page.textContent("#guide .nav"))?.includes("Start") && (await page.textContent("#guide .nav"))?.includes("Skip"));
+  const cardAtWelcome = await rect(page, "#guide");
   await page.screenshot({ path: "shots/onboarding-live-guide-welcome.png" });
   await page.click('#guide [data-act="next"]');
   check("step 1 is the mainspring", (await page.textContent("#guide h2"))?.includes("mainspring"));
   check("step 1 links the manual", (await page.getAttribute("#guide .manual a", "href"))?.endsWith("#power"));
-  // Walk to the regulator step and confirm the slider is spotlighted and the card moved out of its way.
-  for (let i = 0; i < 3; i++) await page.click('#guide [data-act="next"]');
+  await page.waitForTimeout(250);
+  check("step 1 frame wraps the wind slider", contains(await rect(page, "#guide-spot"), await rect(page, "#ctl-wind")));
+  await page.click('#guide [data-act="next"]');
+  await page.waitForTimeout(250);
+  const esc = await rect(page, "#guide-spot"), mov = await rect(page, "#movement");
+  check("step 2 frame is the escapement, not the whole drawing", esc.h < mov.h * 0.8 && contains(mov, esc), JSON.stringify({ esc, mov }));
+  await page.click('#guide [data-act="next"]');
+  await page.waitForTimeout(250);
+  const bal = await rect(page, "#guide-spot"), ring = await rect(page, "#movement circle.balance");
+  check("step 3 frame wraps only the balance ring", contains(bal, ring) && bal.h < mov.h * 0.5, JSON.stringify({ bal, ring }));
+  check("step 3 ring is not under the card", ring.t >= (await rect(page, "#guide")).b, JSON.stringify({ ringTop: ring.t, cardBottom: (await rect(page, "#guide")).b }));
+  await page.screenshot({ path: "shots/onboarding-live-guide-balance.png" });
+  await page.click('#guide [data-act="next"]');
   check("step 4 is the regulator", (await page.textContent("#guide h2"))?.includes("regulator"));
-  check("regulator control spotlighted", await page.$eval("#ctl-regulator", (el) => el.classList.contains("guide-spot")));
-  check("card moves to the top for a footer spotlight", await page.$eval("#guide", (el) => el.classList.contains("at-top")));
+  await page.waitForTimeout(250);
+  check("step 4 frame wraps the regulator slider", contains(await rect(page, "#guide-spot"), await rect(page, "#ctl-regulator")));
+  const cardAtStep4 = await rect(page, "#guide");
+  check("card stays put between steps", Math.abs(cardAtStep4.t - cardAtWelcome.t) < 1 && Math.abs(cardAtStep4.l - cardAtWelcome.l) < 1, JSON.stringify({ cardAtWelcome, cardAtStep4 }));
+  check("card is at the top, not the bottom", cardAtStep4.t < 40);
   await page.screenshot({ path: "shots/onboarding-live-guide-regulator.png" });
   await page.keyboard.press("ArrowLeft");
   check("ArrowLeft goes back", (await page.textContent("#guide h2"))?.includes("balance"));
   await page.keyboard.press("ArrowRight");
-  // Hidden controls are not spotlighted (beat slider is hidden on puzzle 1).
-  await page.click('#guide [data-act="next"]');
-  check("hidden control is not spotlighted", !(await page.$(".guide-spot")));
-  // Finish the tour.
-  for (let i = 0; i < 3; i++) await page.click('#guide [data-act="next"]');
+  for (let i = 0; i < 4; i++) await page.click('#guide [data-act="next"]');
   check("last step offers Start fixing", (await page.textContent("#guide .nav"))?.includes("Start fixing"));
   await page.click('#guide [data-act="next"]');
   check("guide closes after the last step", !(await page.isVisible("#guide")));
-  check("no spotlight left behind", !(await page.$(".guide-spot")));
+  check("finishing loads puzzle 1", (await page.inputValue("#puzzle-select")) === "runs-fast");
+  check("no frame left behind", !(await page.isVisible("#guide-spot")));
   await page.reload();
   await page.waitForSelector("#onboarding");
   check("guide stays closed after reload", !(await page.isVisible("#guide")));
   check("replay button present", await page.isVisible('[data-act="replay"]'));
+  await page.selectOption("#puzzle-select", "afternoon-slump");
   await page.click('[data-act="replay"]');
-  check("replay reopens at welcome", await page.isVisible("#guide") && (await page.textContent("#guide h2"))?.includes("bad time"));
+  check("replay reopens at welcome in free play", await page.isVisible("#guide") && (await page.inputValue("#puzzle-select")) === "");
   await page.keyboard.press("Escape");
   check("Escape closes the guide", !(await page.isVisible("#guide")));
-  // Hint after 60 s without progress, timer restarted at guide close.
+  check("skip restores the job that was selected", (await page.inputValue("#puzzle-select")) === "afternoon-slump");
+  await page.selectOption("#puzzle-select", "runs-fast");
   await page.clock.runFor(59_000);
   check("no hint at 59 s", !(await page.isVisible("#bench-help .hint")));
   await page.clock.runFor(2_500);
@@ -58,19 +77,18 @@ try {
   await page.clock.runFor(61_000);
   check("puzzle 2 hint after 60 s", (await page.textContent("#bench-help .hint"))?.includes("Beat adjustment"));
   check("no page errors", errs.length === 0, errs.join("; "));
-  // Skip on first visit persists too.
   const p2 = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   await p2.goto(url); await p2.waitForSelector("#guide");
   await p2.click('#guide [data-act="skip"]');
+  check("skip on first visit returns to puzzle 1", (await p2.inputValue("#puzzle-select")) === "runs-fast");
   await p2.reload(); await p2.waitForSelector("#onboarding");
   check("skip persists across reload", !(await p2.isVisible("#guide")));
-  // Mobile: guide fits, no horizontal scroll.
   const m = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await m.goto(url); await m.waitForSelector("#guide");
   const sw = await m.evaluate(() => document.documentElement.scrollWidth);
   check("mobile: no horizontal scroll", sw <= 390, `scrollWidth ${sw}`);
   const gb = await m.locator("#guide").boundingBox();
-  check("mobile: guide card fits the viewport", gb && gb.x >= 0 && gb.x + gb.width <= 390 && gb.height <= 844, JSON.stringify(gb));
+  check("mobile: guide card fits the viewport", gb && gb.x >= 0 && gb.x + gb.width <= 390 && gb.y + gb.height <= 844, JSON.stringify(gb));
   await m.screenshot({ path: "shots/onboarding-live-mobile.png" });
 } finally { await browser.close(); await server.close(); }
 console.log(out.join("\n"));

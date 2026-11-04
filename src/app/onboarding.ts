@@ -21,6 +21,7 @@ type Forced = { kind: "guide"; step: number } | { kind: "trace" } | { kind: "hin
 /** Named states (src/verify/states.ts) that force an onboarding screen for screenshots. */
 const FORCED: Record<string, Forced> = {
   "onboarding-guide-welcome": { kind: "guide", step: 0 },
+  "onboarding-guide-balance": { kind: "guide", step: 3 },
   "onboarding-guide-regulator": { kind: "guide", step: 4 },
   "onboarding-guide-instrument": { kind: "guide", step: 7 },
   "onboarding-trace-explainer": { kind: "trace" },
@@ -41,10 +42,9 @@ interface Step {
   body: string[];
   /** The Bench control and puzzle that touch this part, if any. */
   fix?: string;
-  /** Element id to spotlight while this step shows. Skipped when the element is hidden. */
+  /** CSS selector for the part(s) to spotlight: the frame wraps the union of their boxes. Re-measured
+   *  every frame, because the drawing is redrawn every frame. Hidden elements are ignored. */
   spot?: string;
-  /** Pin the card's place instead of choosing it from where the spotlight is. Never the bottom. */
-  cardAt?: "top" | "center";
   /** Section anchor in the manual. */
   manual?: { anchor: string; label: string };
 }
@@ -54,7 +54,8 @@ const STEPS: Step[] = [
     title: "A watch that keeps bad time is on the bench",
     body: [
       "The drawing is a live watch movement. The dark screen is the instrument that listens to it.",
-      "In eight short steps you will learn what each part does and which part to touch when the watch runs wrong.",
+      "In eight short steps you will learn what each part does and which slider to touch when the watch runs wrong.",
+      "While you read, every slider is unlocked. Your first job loads at the end.",
       "Two minutes. Skip any time and come back from the strip above the pictures.",
     ],
   },
@@ -66,7 +67,7 @@ const STEPS: Step[] = [
       "A healthy spring runs about 40 hours.",
     ],
     fix: "<b>State of wind</b> slider · Puzzle 3, Afternoon slump",
-    spot: "ctl-wind",
+    spot: "#ctl-wind",
     manual: { anchor: "power", label: "Power" },
   },
   {
@@ -77,8 +78,7 @@ const STEPS: Step[] = [
       "Each tick also gives the balance a tiny push, like pushing someone on a swing.",
     ],
     fix: "Nothing to adjust. Watch it in the drawing; slow it with <b>Movement speed</b>.",
-    spot: "movement",
-    cardAt: "top",
+    spot: "#movement .wheel, #movement .tooth, #movement .lever, #movement .stone",
     manual: { anchor: "escapement", label: "Escapement" },
   },
   {
@@ -89,8 +89,7 @@ const STEPS: Step[] = [
       "Nothing else in the watch sets the rate. Every timekeeping fault is about this swing.",
     ],
     fix: "<b>Timing screws</b> change the ring's mass; mass further out means slower swings.",
-    spot: "movement",
-    cardAt: "center",
+    spot: "#movement circle.balance",
     manual: { anchor: "balance", label: "Balance" },
   },
   {
@@ -101,7 +100,7 @@ const STEPS: Step[] = [
       "Slide toward S and more spring is free: slower swings, the watch loses.",
     ],
     fix: "<b>Regulator index</b> slider · Puzzle 1, Runs fast",
-    spot: "ctl-regulator",
+    spot: "#ctl-regulator",
     manual: { anchor: "balance", label: "Balance" },
   },
   {
@@ -112,7 +111,7 @@ const STEPS: Step[] = [
       "A watchmaker calls that beat error. It sounds like a limp.",
     ],
     fix: "<b>Beat adjustment</b> slider · Puzzle 2, Out of beat",
-    spot: "ctl-beat",
+    spot: "#ctl-beat",
     manual: { anchor: "balance", label: "Balance" },
   },
   {
@@ -123,7 +122,7 @@ const STEPS: Step[] = [
       "If one spot on the ring is heavier, gravity drags on it every swing when the watch stands up, and the rate drifts.",
     ],
     fix: "<b>Position</b> and <b>Poising</b> · Puzzle 4, Position error",
-    spot: "ctl-position",
+    spot: "#ctl-position",
     manual: { anchor: "mainplate", label: "Mainplate" },
   },
   {
@@ -135,17 +134,17 @@ const STEPS: Step[] = [
       "<b>Beat error</b>: how uneven tick and tock are, in milliseconds. Under 0.5 is good.",
     ],
     fix: "Read these before you touch anything. They tell you which part is wrong.",
-    spot: "timegrapher",
+    spot: "#timegrapher",
   },
   {
     title: "8 · Your first job",
     body: [
-      "The job card says the owner's watch gains about 40 seconds a day. The timegrapher agrees: a sloping line and a plus rate.",
+      "Jobs live in the <b>Job</b> picker at the top right. The first one: the owner's watch gains about 40 seconds a day.",
       "Gaining means the swing is too quick, so the regulator is the part to touch.",
-      "Slide <b>Regulator index</b> toward S until <b>rate</b> reads within ±5. Hold it there and the bar on the card fills.",
+      "Slide <b>Regulator index</b> toward S until <b>rate</b> reads within ±5. Hold it there and the bar on the job card fills.",
     ],
-    fix: "Stuck for a minute? A hint appears in the strip above the pictures.",
-    spot: "puzzle",
+    fix: "Press <b>Start fixing</b> to load the job. Stuck for a minute? A hint appears in the strip above the pictures.",
+    spot: "#puzzle-select",
   },
 ];
 
@@ -168,16 +167,18 @@ const STYLE = `
   #bench-help .hint[hidden] { display: none }
   #bench-help .hint .tag { color: var(--ruby); font-weight: 600; margin-right: 6px }
 
-  /* The guide: a backdrop, a spotlight on the part being talked about, and a card that keeps clear of it. */
-  #guide-backdrop { position: fixed; inset: 0; background: rgba(28, 39, 51, 0.45); z-index: 1000 }
+  /* The guide: a click-catching backdrop, a spotlight frame whose shadow dims everything but the part
+     being talked about, and a card that stays in one place for the whole tour. */
+  #guide-backdrop { position: fixed; inset: 0; z-index: 1000 }
   #guide-backdrop[hidden] { display: none }
-  .guide-spot { position: relative; z-index: 1001; outline: 3px solid var(--ruby); outline-offset: 4px; background: var(--sheet) }
-  #guide { position: fixed; left: 50%; z-index: 1002; width: min(600px, calc(100vw - 32px));
-    max-height: calc(100vh - 32px); overflow: auto; background: var(--sheet); color: var(--ink); border: 1.5px solid var(--ink);
+  #guide-spot { position: fixed; z-index: 1001; pointer-events: none; border: 3px solid var(--ruby); border-radius: 4px;
+    box-shadow: 0 0 0 9999px rgba(28, 39, 51, 0.45); transition: left 180ms ease, top 180ms ease, width 180ms ease, height 180ms ease }
+  #guide-spot[hidden] { display: none }
+  #guide-spot.none { border-color: transparent; border-radius: 0 }
+  #guide { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); z-index: 1002; width: min(600px, calc(100vw - 32px));
+    max-height: calc(100vh - 40px); overflow: auto; background: var(--sheet); color: var(--ink); border: 1.5px solid var(--ink);
     box-shadow: 0 0 0 4px var(--sheet), 0 0 0 5px var(--rule), 0 12px 32px rgba(0,0,0,0.25); padding: 16px 18px 14px; font-size: 14.5px; line-height: 1.5 }
   #guide[hidden] { display: none }
-  #guide.at-center { top: 50%; transform: translate(-50%, -50%) }
-  #guide.at-top { top: 20px; transform: translateX(-50%) }
   #guide h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; line-height: 1.3; padding-bottom: 8px; border-bottom: 1px solid var(--rule) }
   #guide p { margin: 6px 0; max-width: 62ch }
   #guide .fix { margin-top: 10px; padding: 8px 12px; border-left: 3px solid var(--ruby); background: var(--sheet-2) }
@@ -189,10 +190,11 @@ const STYLE = `
   #guide .nav .primary { background: var(--ink); color: var(--sheet) }
   #guide .nav .primary:hover { background: var(--case-2) }
   #guide .nav .skip { border-color: var(--rule); color: var(--ink-2) }
+  @media (prefers-reduced-motion: reduce) { #guide-spot { transition: none } }
   @media (max-width: 760px) {
     #bench-help .explainer { grid-template-columns: 1fr }
-    #guide { padding: 14px; font-size: 14px }
-    #guide.at-top { top: 10px }
+    #guide { padding: 14px; font-size: 14px; top: 10px; max-height: calc(100vh - 20px) }
+    #guide-spot { transition: none }
   }
 `;
 
@@ -225,28 +227,71 @@ const STRIP = `<div id="bench-help">
 const read = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, v: string) => { try { localStorage.setItem(key, v); } catch { /* private mode */ } };
 
-/** The step-by-step guide. Returns open(step) so the strip can replay it. */
-function mountGuide(onClose: () => void): (step?: number) => void {
+/** Switch the Job picker and let main.ts load the puzzle. "" is Free play. */
+function selectPuzzle(id: string) {
+  const sel = document.getElementById("puzzle-select") as HTMLSelectElement | null;
+  if (!sel || sel.value === id) return;
+  sel.value = id;
+  sel.dispatchEvent(new Event("change"));
+}
+
+/** The step-by-step guide. Returns open(step, switchToFreePlay) so the strip can replay it. */
+function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) => void {
   const backdrop = document.createElement("div");
   backdrop.id = "guide-backdrop"; backdrop.hidden = true;
+  const frame = document.createElement("div");
+  frame.id = "guide-spot"; frame.hidden = true;
   const card = document.createElement("section");
   card.id = "guide"; card.hidden = true;
   card.setAttribute("role", "dialog"); card.setAttribute("aria-modal", "true"); card.setAttribute("aria-labelledby", "guide-title");
   card.tabIndex = -1;
-  document.body.append(backdrop, card);
+  document.body.append(backdrop, frame, card);
 
-  let step = 0, spotted: HTMLElement | null = null, open = false;
+  let step = 0, open = false, selector: string | undefined, raf = 0;
+  /** While the tour runs the page is pushed down below the card, so nothing is ever under it.
+   *  The band only grows during a tour, so content does not shift between steps. */
+  let band = 0, bodyPadding = "";
+  const reserveBand = () => {
+    const need = card.getBoundingClientRect().bottom + 16;
+    if (need <= band) return;
+    band = need;
+    document.body.style.paddingTop = `${band}px`;
+  };
+  /** The job that was selected when the guide opened; Skip puts it back. */
+  let previousJob = "";
 
-  const unspot = () => { spotted?.classList.remove("guide-spot"); spotted = null; };
-  const spot = (id?: string, cardAt?: "top" | "center") => {
-    unspot();
-    const el = id ? document.getElementById(id) : null;
-    if (!el || el.hidden) { card.className = `at-${cardAt ?? "center"}`; return; }
-    el.classList.add("guide-spot"); spotted = el;
-    el.scrollIntoView({ block: "nearest", behavior: "auto" });
-    // Centred by default; at the top when the spotlight is in the lower half of the screen. Never at the bottom.
-    const r = el.getBoundingClientRect();
-    card.className = `at-${cardAt ?? (r.top + r.height / 2 > window.innerHeight / 2 ? "top" : "center")}`;
+  const PAD = 8;
+  /** Union of the visible targets' boxes, in viewport pixels. */
+  const measure = (): DOMRect | null => {
+    if (!selector) return null;
+    let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity, n = 0;
+    for (const el of Array.from(document.querySelectorAll<Element>(selector))) {
+      if (el instanceof HTMLElement && el.hidden) continue;
+      const k = el.getBoundingClientRect();
+      if (k.width === 0 && k.height === 0) continue;
+      l = Math.min(l, k.left); t = Math.min(t, k.top); r = Math.max(r, k.right); b = Math.max(b, k.bottom); n++;
+    }
+    return n ? new DOMRect(l, t, r - l, b - t) : null;
+  };
+  const place = () => {
+    const k = measure();
+    if (!k) {
+      frame.className = "none";
+      Object.assign(frame.style, { left: "50vw", top: "50vh", width: "0px", height: "0px" });
+    } else {
+      frame.className = "";
+      Object.assign(frame.style, { left: `${k.left - PAD}px`, top: `${k.top - PAD}px`, width: `${k.width + 2 * PAD}px`, height: `${k.height + 2 * PAD}px` });
+    }
+    if (open) raf = requestAnimationFrame(place);
+  };
+  const spot = (sel?: string) => {
+    selector = sel;
+    const first = sel ? document.querySelector(sel) : null;
+    first?.scrollIntoView({ block: "nearest", behavior: "auto" });
+    // The card never moves, so the page scrolls instead: keep the lit part below the card.
+    const k = measure(), c = card.getBoundingClientRect();
+    if (k && k.top < c.bottom + 12) window.scrollBy({ top: k.top - c.bottom - 12, behavior: "auto" });
+    cancelAnimationFrame(raf); place();
   };
   const render = () => {
     const s = STEPS[step], last = step === STEPS.length - 1, first = step === 0;
@@ -262,31 +307,41 @@ function mountGuide(onClose: () => void): (step?: number) => void {
         <button type="button" class="primary" data-act="next">${first ? "Start" : last ? "Start fixing" : "Next"}</button>
       </div>`;
     card.querySelectorAll<HTMLButtonElement>("[data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act!)));
-    spot(s.spot, s.cardAt);
+    reserveBand();
+    spot(s.spot);
     card.querySelector<HTMLButtonElement>(".primary")?.focus();
   };
-  const close = () => {
-    open = false; unspot(); card.hidden = backdrop.hidden = true;
+  const close = (finished: boolean) => {
+    open = false; cancelAnimationFrame(raf); selector = undefined;
+    card.hidden = backdrop.hidden = frame.hidden = true;
+    document.body.style.paddingTop = bodyPadding; band = 0;
     write(GUIDE_DONE_KEY, "1");
     document.removeEventListener("keydown", onKey);
+    // Finishing loads the first job; skipping puts back whatever was selected before.
+    selectPuzzle(finished ? "runs-fast" : previousJob);
     onClose();
   };
   const act = (a: string) => {
-    if (a === "skip") close();
+    if (a === "skip") close(false);
     else if (a === "back") { step = Math.max(0, step - 1); render(); }
-    else if (a === "next") { if (step === STEPS.length - 1) close(); else { step++; render(); } }
+    else if (a === "next") { if (step === STEPS.length - 1) close(true); else { step++; render(); } }
   };
   const onKey = (e: KeyboardEvent) => {
     if (!open) return;
-    if (e.key === "Escape") { e.preventDefault(); close(); }
+    if (e.key === "Escape") { e.preventDefault(); close(false); }
     else if (e.key === "ArrowRight") { e.preventDefault(); act("next"); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); act("back"); }
   };
-  backdrop.onclick = close;
+  backdrop.onclick = () => close(false);
 
-  return (at = 0) => {
+  return (at = 0, freePlay = true) => {
     step = Math.min(Math.max(0, at), STEPS.length - 1); open = true;
-    card.hidden = backdrop.hidden = false;
+    const sel = document.getElementById("puzzle-select") as HTMLSelectElement | null;
+    previousJob = sel?.value ?? "";
+    // Free play shows every slider, so each step can spotlight the one it names.
+    if (freePlay) selectPuzzle("");
+    bodyPadding = document.body.style.paddingTop; band = 0;
+    card.hidden = backdrop.hidden = frame.hidden = false;
     document.addEventListener("keydown", onKey);
     render();
   };
@@ -341,10 +396,10 @@ export function mountOnboarding(): void {
   };
 
   const openGuide = mountGuide(() => { guideOpen = false; since = performance.now(); });
-  const startGuide = (at = 0) => { guideOpen = true; openGuide(at); };
+  const startGuide = (at = 0, freePlay = true) => { guideOpen = true; openGuide(at, freePlay); };
   strip.querySelector<HTMLButtonElement>('[data-act="replay"]')!.onclick = () => startGuide(0);
 
-  if (forced?.kind === "guide") { startGuide(forced.step); return; }
+  if (forced?.kind === "guide") { startGuide(forced.step, false); return; }
   if (forced?.kind === "trace") { details.open = true; return; }
   if (forced?.kind === "hint") { showHint(puzzleId); return; }
 
