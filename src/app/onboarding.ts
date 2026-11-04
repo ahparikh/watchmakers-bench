@@ -43,8 +43,8 @@ interface Step {
   fix?: string;
   /** Element id to spotlight while this step shows. Skipped when the element is hidden. */
   spot?: string;
-  /** Pin the card to one edge instead of choosing the edge away from the spotlight. */
-  cardAt?: "top" | "bottom";
+  /** Pin the card's place instead of choosing it from where the spotlight is. Never the bottom. */
+  cardAt?: "top" | "center";
   /** Section anchor in the manual. */
   manual?: { anchor: string; label: string };
 }
@@ -90,7 +90,7 @@ const STEPS: Step[] = [
     ],
     fix: "<b>Timing screws</b> change the ring's mass; mass further out means slower swings.",
     spot: "movement",
-    cardAt: "bottom",
+    cardAt: "center",
     manual: { anchor: "balance", label: "Balance" },
   },
   {
@@ -172,12 +172,12 @@ const STYLE = `
   #guide-backdrop { position: fixed; inset: 0; background: rgba(28, 39, 51, 0.45); z-index: 1000 }
   #guide-backdrop[hidden] { display: none }
   .guide-spot { position: relative; z-index: 1001; outline: 3px solid var(--ruby); outline-offset: 4px; background: var(--sheet) }
-  #guide { position: fixed; left: 50%; transform: translateX(-50%); z-index: 1002; width: min(600px, calc(100vw - 32px));
+  #guide { position: fixed; left: 50%; z-index: 1002; width: min(600px, calc(100vw - 32px));
     max-height: calc(100vh - 32px); overflow: auto; background: var(--sheet); color: var(--ink); border: 1.5px solid var(--ink);
     box-shadow: 0 0 0 4px var(--sheet), 0 0 0 5px var(--rule), 0 12px 32px rgba(0,0,0,0.25); padding: 16px 18px 14px; font-size: 14.5px; line-height: 1.5 }
   #guide[hidden] { display: none }
-  #guide.at-bottom { bottom: 20px }
-  #guide.at-top { top: 20px }
+  #guide.at-center { top: 50%; transform: translate(-50%, -50%) }
+  #guide.at-top { top: 20px; transform: translateX(-50%) }
   #guide h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; line-height: 1.3; padding-bottom: 8px; border-bottom: 1px solid var(--rule) }
   #guide p { margin: 6px 0; max-width: 62ch }
   #guide .fix { margin-top: 10px; padding: 8px 12px; border-left: 3px solid var(--ruby); background: var(--sheet-2) }
@@ -192,9 +192,8 @@ const STYLE = `
   @media (max-width: 760px) {
     #bench-help .explainer { grid-template-columns: 1fr }
     #guide { padding: 14px; font-size: 14px }
-    #guide.at-bottom { bottom: 10px } #guide.at-top { top: 10px }
+    #guide.at-top { top: 10px }
   }
-  @media (prefers-reduced-motion: no-preference) { #guide { transition: top 150ms ease, bottom 150ms ease } }
 `;
 
 const STRIP = `<div id="bench-help">
@@ -239,15 +238,15 @@ function mountGuide(onClose: () => void): (step?: number) => void {
   let step = 0, spotted: HTMLElement | null = null, open = false;
 
   const unspot = () => { spotted?.classList.remove("guide-spot"); spotted = null; };
-  const spot = (id?: string, cardAt?: "top" | "bottom") => {
+  const spot = (id?: string, cardAt?: "top" | "center") => {
     unspot();
     const el = id ? document.getElementById(id) : null;
-    if (!el || el.hidden) { card.className = `at-${cardAt ?? "bottom"}`; return; }
+    if (!el || el.hidden) { card.className = `at-${cardAt ?? "center"}`; return; }
     el.classList.add("guide-spot"); spotted = el;
     el.scrollIntoView({ block: "nearest", behavior: "auto" });
-    // Put the card on the side of the viewport the spotlight is not on, unless the step says where.
+    // Centred by default; at the top when the spotlight is in the lower half of the screen. Never at the bottom.
     const r = el.getBoundingClientRect();
-    card.className = `at-${cardAt ?? (r.top + r.height / 2 > window.innerHeight / 2 ? "top" : "bottom")}`;
+    card.className = `at-${cardAt ?? (r.top + r.height / 2 > window.innerHeight / 2 ? "top" : "center")}`;
   };
   const render = () => {
     const s = STEPS[step], last = step === STEPS.length - 1, first = step === 0;
