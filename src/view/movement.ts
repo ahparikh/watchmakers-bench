@@ -153,7 +153,7 @@ export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: 
     .swing { fill: none; stroke: ${RUBY}; stroke-width: 1.6; stroke-linecap: round }
     .ghostpin { fill: none; stroke: ${RUBY}; stroke-width: 0.9; stroke-dasharray: 1.5 1 }
     /* A control is being moved: its part glows. */
-    .part.hot line, .part.hot path, .part.hot circle { stroke: ${RUBY}; stroke-width: 2.2; filter: drop-shadow(0 0 2.5px ${RUBY}99) }
+    .part.hot line, .part.hot path, .part.hot circle { stroke: ${RUBY}; stroke-width: 2.2 }
     .part.hot circle.stud, .part.hot circle.regpin, .part.hot circle.screw { fill: ${RUBY_PALE} }
     .part.hot text { fill: ${RUBY}; font-weight: 700 }
     .gravity.hot { stroke: ${RUBY}; color: ${RUBY}; stroke-width: 1.8 } .gravity.hot text { fill: ${RUBY} }

@@ -16,7 +16,7 @@ export interface Puzzle {
   band: (r: WatchReading, tg: Reading | null) => boolean;
   holdSeconds: number;
   explanation: string;
-  /** Which controls this puzzle shows. */
+  /** Which controls this puzzle shows. State of wind is a condition of the watch, not a repair, so every puzzle shows it. */
   controls: ("regulator" | "beat" | "wind" | "screws" | "position" | "poise")[];
   /** For puzzles with no knob fix: a two-choice question ends them instead of a band. */
   question?: { prompt: string; choices: string[]; correct: number; whyCorrect: string };
@@ -33,7 +33,7 @@ export const PUZZLES: Puzzle[] = [
     holdSeconds: 60,
     explanation:
       "The regulator index had been pushed toward F. Its two pins pinch the hairspring nearer its end, so a shorter length of spring does the work; a shorter spring is stiffer and swings the balance back a little quicker on every beat. Moving the index toward S frees more spring, and the beats slow back to true time.",
-    controls: ["regulator"],
+    controls: ["regulator", "wind"],
   },
   {
     id: "out-of-beat",
@@ -45,7 +45,7 @@ export const PUZZLES: Puzzle[] = [
     holdSeconds: 60,
     explanation:
       "The hairspring held the balance at rest slightly off centre, so the balance reached the fork early on one side of its swing and late on the other. Tick and tock were unequal: that gap is the beat error. Turning the stud carrier (the beat adjustment) moves the rest position back to centre, and the two lines on the screen merge.",
-    controls: ["beat"],
+    controls: ["beat", "wind"],
   },
   {
     id: "afternoon-slump",

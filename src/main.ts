@@ -39,7 +39,10 @@ let revealHeavySpot = false;
 /** The control being moved, highlighted on the drawing until `hotUntil` (wall ms). */
 let hot: Highlight = null;
 let hotUntil = 0;
-function touch(part: Highlight) { hot = part; hotUntil = performance.now() + 1200; if (animPaused) drawMovement(); }
+function touch(part: Highlight) { hot = part; hotUntil = performance.now() + 600; if (animPaused) drawMovement(); }
+/** On release the glow goes out quickly. */
+function release() { if (hot) hotUntil = Math.min(hotUntil, performance.now() + 150); }
+window.addEventListener("pointerup", release); window.addEventListener("pointercancel", release);
 let lastWall = performance.now();
 
 const spec = (): WatchSpec => (puzzle?.specOverride ? puzzle.specOverride(calibre.watch) : calibre.watch);
@@ -59,8 +62,15 @@ const effective = (): WatchSettings => {
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const movementEl = $("movement"), tgEl = $("timegrapher"), puzzleEl = $("puzzle");
 
+/** Balance angle at an absolute time with the current reading: used only for frozen, named states. */
 function balanceAngleAt(t: number) {
   return reading.running ? reading.amplitudeDeg * Math.sin((2 * Math.PI * t) / reading.period) - reading.beatOffsetDeg : -reading.beatOffsetDeg;
+}
+/** Live loop: the oscillator's phase is accumulated frame by frame, so a change of period or
+ *  amplitude from a slider never jumps the balance (phase from absolute time would). */
+let balancePhase = Math.PI / 2; // start at +amplitude, fork parked
+function balanceAngleNow() {
+  return reading.running ? reading.amplitudeDeg * Math.sin(balancePhase) - reading.beatOffsetDeg : -reading.beatOffsetDeg;
 }
 
 function recompute() {
@@ -103,7 +113,8 @@ function frame(now: number) {
   if (!animPaused) {
     const dt = wallDt * animSpeed;
     animTime += dt;
-    pose = step(esc, pose, balanceAngleAt(animTime), Math.max(dt, 1e-6));
+    if (reading.running) balancePhase += (2 * Math.PI * dt) / reading.period;
+    pose = step(esc, pose, balanceAngleNow(), Math.max(dt, 1e-6));
     drawMovement();
   }
   // Timegrapher clock.
