@@ -79,14 +79,16 @@
   #movement svg { width: 100%; max-height: 72vh; overflow: visible }
 
   /* Tempo strip: a stepped index inside the drawing's frame, with Pause at its end. */
-  .tempo { display: flex; align-items: flex-end; gap: 16px; padding: 10px 14px 10px; border-top: 1px solid var(--ink); background: var(--sheet-2) }
+  .tempo { display: flex; align-items: flex-end; gap: 16px; padding: 10px 14px 8px; border-bottom: 1px solid var(--ink); background: var(--sheet-2) }
   .tempo-label { font-size: 13px; color: var(--ink-2); padding-bottom: 14px; white-space: nowrap }
   .tempo-track { flex: 1 1 auto; min-width: 0 }
   .tempo-track input[type=range] { width: 100%; height: 24px }
-  .tempo-stops { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-3); margin-top: -2px }
-  .tempo-stops span { flex: 1 1 0; text-align: center; white-space: nowrap }
-  .tempo-stops span:first-child { text-align: left } .tempo-stops span:last-child { text-align: right }
+  /* Stop labels sit exactly under the thumb centres: the thumb (10px wide) travels width minus 10px. */
+  .tempo-stops { position: relative; height: 22px; font-size: 11.5px; color: var(--ink-3) }
+  .tempo-stops span { position: absolute; top: 0; left: calc(5px + var(--i) * (100% - 10px) / var(--n)); transform: translateX(-50%); white-space: nowrap; padding-top: 7px }
+  .tempo-stops span::before { content: ""; position: absolute; top: -3px; left: 50%; width: 1px; height: 7px; background: var(--ink-3) }
   .tempo-stops span.on { color: var(--ink); font-weight: 600 }
+  .tempo-stops span.on::before { background: var(--ink); width: 1.5px }
   .tempo #pause { margin: 0 0 10px; min-width: 76px; min-height: 34px }
 
   /* Timegrapher: one dark instrument case holding the screen and the readout strip. */
@@ -204,8 +206,8 @@
     </header>
     <main>
       <div id="movement-panel">
-        <div id="movement"></div>
         <div class="tempo" id="tempo"></div>
+        <div id="movement"></div>
       </div>
       <div id="timegrapher"></div>
       <div id="puzzle"></div>

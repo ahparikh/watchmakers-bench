@@ -15,7 +15,7 @@ export function mountSpeedControl(host: HTMLElement, select: HTMLSelectElement, 
   host.innerHTML = `<label class="tempo-label" for="speed-slider">Movement speed</label>
     <div class="tempo-track">
       <input id="speed-slider" type="range" min="0" max="${SPEED_STOPS.length - 1}" step="1" value="${start}" aria-valuetext="${SPEED_STOPS[start].label}" />
-      <div class="tempo-stops" aria-hidden="true">${SPEED_STOPS.map((s) => `<span>${s.label}</span>`).join("")}</div>
+      <div class="tempo-stops" aria-hidden="true" style="--n:${SPEED_STOPS.length - 1}">${SPEED_STOPS.map((s, i) => `<span style="--i:${i}">${s.label}</span>`).join("")}</div>
     </div>`;
   host.appendChild(pause);
   const slider = host.querySelector<HTMLInputElement>("#speed-slider")!;
