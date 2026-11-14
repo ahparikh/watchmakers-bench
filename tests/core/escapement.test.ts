@@ -124,3 +124,23 @@ describe("stepper", () => {
     expect(coarse.phase).toBe(fine.phase);
   });
 });
+
+describe("run-down watch", () => {
+  // Balance at rest in the notch, fork mid-travel, and the wheel backed off one degree from the
+  // impulse face it would otherwise rest on: a pose where the wheel is free to move.
+  const backedOff = () => { const s = initialPose(p, 0); return { ...s, wheelAngle: s.wheelAngle - 1 }; };
+
+  it("without torque the escape wheel stays exactly where it is", () => {
+    let pose = backedOff();
+    const parked = pose.wheelAngle;
+    for (let i = 0; i < 200; i++) pose = step(p, pose, 0, 0.016, false);
+    expect(pose.wheelAngle).toBe(parked);
+  });
+  it("with torque the same pose runs the wheel forward until a stone stops it", () => {
+    let pose = backedOff();
+    const before = pose.wheelAngle;
+    for (let i = 0; i < 5; i++) pose = step(p, pose, 0, 0.016, true);
+    expect(pose.wheelAngle - before).toBeCloseTo(1, 3);
+    expect(pose.contact).not.toBeNull();
+  });
+});

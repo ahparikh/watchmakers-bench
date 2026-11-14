@@ -7,7 +7,8 @@ import { derived } from "./core/escapement/params";
 import { CONTACT_TOL } from "./core/escapement/kinematics";
 import { analyze, type Reading } from "./core/timegrapher/analyze";
 import { advanceTicks, emptyWindow, type TickWindow } from "./app/ticker";
-import { renderMovement } from "./view/movement";
+import { renderMovement, type Highlight } from "./view/movement";
+import { adjustmentShapes } from "./core/escapement/adjustments";
 import { renderTimegrapher } from "./view/timegrapher";
 import { PUZZLES, type Puzzle } from "./puzzles";
 import { STATES } from "./verify/states";
@@ -34,6 +35,15 @@ let tg: Reading | null = null;
 let heldSeconds = 0;
 let solved = false;
 let answered: number | null = null;
+let revealHeavySpot = false;
+/** The control being moved, highlighted on the drawing until `hotUntil` (wall ms). */
+let hot: Highlight = null;
+let hotUntil = 0;
+function touch(part: Highlight) { hot = part; hotUntil = performance.now() + 600; if (animPaused) drawMovement(); }
+/** On release the glow goes out quickly. */
+let pointerHeld = false;
+function release() { pointerHeld = false; if (hot) hotUntil = Math.min(hotUntil, performance.now() + 150); }
+window.addEventListener("pointerup", release); window.addEventListener("pointercancel", release);
 let lastWall = performance.now();
 
 const spec = (): WatchSpec => (puzzle?.specOverride ? puzzle.specOverride(calibre.watch) : calibre.watch);
@@ -53,36 +63,76 @@ const effective = (): WatchSettings => {
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const movementEl = $("movement"), tgEl = $("timegrapher"), puzzleEl = $("puzzle");
 
+/** Balance angle at an absolute time with the current reading: used only for frozen, named states. */
 function balanceAngleAt(t: number) {
   return reading.running ? reading.amplitudeDeg * Math.sin((2 * Math.PI * t) / reading.period) - reading.beatOffsetDeg : -reading.beatOffsetDeg;
+}
+/** Live loop: the oscillator's phase is accumulated frame by frame, so a change of period or
+ *  amplitude from a slider never jumps the balance (phase from absolute time would). */
+let balancePhase = Math.PI / 2; // start at +amplitude, fork parked
+function balanceAngleNow() {
+  return reading.running ? reading.amplitudeDeg * Math.sin(balancePhase) - reading.beatOffsetDeg : -reading.beatOffsetDeg;
 }
 
 function recompute() {
   reading = readWatch(spec(), effective());
+  if (animPaused) drawMovement();
 }
 
+/** Named verify-render state, if the URL asked for one. */
+let named: string | null = null;
+let lastMovementHtml = "";
+let lastTimegrapherHtml = "";
 function drawMovement() {
-  movementEl.innerHTML = renderMovement(esc, pose, animTime * 1000);
+  const eff = effective();
+  const adj = adjustmentShapes(esc, { ...eff, balanceAngle: pose.balanceAngle, amplitudeDeg: reading.amplitudeDeg, revealHeavySpot: revealHeavySpot || (solved && puzzle?.id === "position-error") });
+  if (hot && !pointerHeld && performance.now() > hotUntil) hot = null;
+  // Write the DOM only when the picture changed: a stopped watch redraws nothing, so a slider
+  // being dragged is not fighting sixty SVG replacements a second.
+  const html = renderMovement(esc, pose, animTime * 1000, adj, hot) + (reading.running ? "" : "<!--stopped-->");
+  if (html === lastMovementHtml) return;
+  lastMovementHtml = html;
+  movementEl.innerHTML = html;
+  if (named) movementEl.querySelector("svg")!.setAttribute("data-state", named);
   if (!reading.running) movementEl.querySelector(".phase")!.textContent = "STOPPED · no torque at the escape wheel";
 }
 function drawTimegrapher() {
-  tgEl.innerHTML = renderTimegrapher({ reading: tg, nominalPeriod: T, liftAngle: calibre.liftAngle, running: reading.running, knocking: reading.knocking, spanSeconds: (TRACE_BEATS * T) / 2, speedup: SIM_SPEEDUP });
+  const html = renderTimegrapher({ reading: tg, nominalPeriod: T, liftAngle: calibre.liftAngle, running: reading.running, knocking: reading.knocking, spanSeconds: (TRACE_BEATS * T) / 2, speedup: SIM_SPEEDUP });
+  if (html === lastTimegrapherHtml) return;
+  lastTimegrapherHtml = html;
+  tgEl.innerHTML = html;
 }
+let lastPuzzleHtml = "";
+/** Re-renders only when the card's content changes: it is called every frame for the hold bar. */
 function drawPuzzle() {
-  if (!puzzle) { puzzleEl.innerHTML = `<h2>Free play</h2><p>Adjust anything. The timegrapher shows what a watchmaker would see.</p>`; return; }
+  const html = puzzleHtml();
+  if (html === lastPuzzleHtml) return;
+  lastPuzzleHtml = html;
+  puzzleEl.innerHTML = html;
+  puzzleEl.querySelectorAll<HTMLButtonElement>(".choice").forEach((b) => (b.onclick = () => { answered = Number(b.dataset.choice); if (answered === puzzle!.question!.correct) solved = true; drawPuzzle(); }));
+}
+function puzzleHtml(): string {
+  if (!puzzle) return `<h2>Free play</h2><p>Adjust anything. The timegrapher shows what a watchmaker would see.</p>`;
   const idx = PUZZLES.indexOf(puzzle);
-  puzzleEl.innerHTML = `<h2>Puzzle ${idx + 1} · ${puzzle.title}</h2>
+  return `<h2>Puzzle ${idx + 1} · ${puzzle.title}</h2>
     <p class="symptom">${puzzle.symptom}</p>
     <p class="goal"><strong>Goal:</strong> ${puzzle.goal}</p>
     ${Number.isFinite(puzzle.holdSeconds) ? `<div class="hold"><div class="bar" style="width:${Math.min(100, (100 * heldSeconds) / puzzle.holdSeconds).toFixed(1)}%"></div><span>${solved ? "solved" : `${heldSeconds.toFixed(0)} / ${puzzle.holdSeconds} s in band`}</span></div>` : ""}
     ${puzzle.question ? `<div class="question"><p>${puzzle.question.prompt}</p>${puzzle.question.choices.map((c, i) => `<button class="choice ${answered === i ? (i === puzzle!.question!.correct ? "right" : "wrong") : ""}" data-choice="${i}">${c}</button>`).join("")}${answered !== null ? `<p class="verdict">${answered === puzzle.question.correct ? puzzle.question.whyCorrect : "Not quite. Watch the rate as the wind runs down, then try again."}</p>` : ""}</div>` : ""}
     ${solved ? `<details open><summary>Why it worked</summary><p>${puzzle.explanation}</p></details>` : ""}`;
-  puzzleEl.querySelectorAll<HTMLButtonElement>(".choice").forEach((b) => (b.onclick = () => { answered = Number(b.dataset.choice); if (answered === puzzle!.question!.correct) solved = true; drawPuzzle(); }));
 }
 function drawControls() {
   const show = (name: string) => !puzzle || puzzle.controls.includes(name as never) || puzzle.controls.length === 0;
   for (const name of ["regulator", "beat", "wind", "screws", "position"]) $(`ctl-${name}`).hidden = !show(name);
   $("ctl-poise").hidden = $("ctl-poise-angle").hidden = !show("poise");
+  // Controls appear in the order the puzzle lists them; free play keeps the page's own order.
+  const rank = (name: string) => (puzzle ? puzzle.controls.indexOf(name as never) : -1);
+  for (const name of ["regulator", "beat", "wind", "screws", "position", "poise"]) {
+    const order = rank(name) < 0 ? "" : String(rank(name) * 2);
+    $(`ctl-${name}`).style.order = order;
+    if (name === "poise") $("ctl-poise-angle").style.order = order === "" ? "" : String(rank(name) * 2 + 1);
+  }
+  $("readout-rate").style.order = "99";
   $("readout-rate").textContent = reading.running ? `${reading.rateSecondsPerDay >= 0 ? "+" : "−"}${Math.abs(reading.rateSecondsPerDay).toFixed(1)} s/day true rate` : "stopped";
 }
 
@@ -91,9 +141,10 @@ function frame(now: number) {
   const wallDt = Math.min(0.1, (now - lastWall) / 1000);
   lastWall = now;
   if (!animPaused) {
-    const dt = wallDt * animSpeed;
+    const dt = reading.running ? wallDt * animSpeed : 0; // a stopped watch holds still
     animTime += dt;
-    pose = step(esc, pose, balanceAngleAt(animTime), Math.max(dt, 1e-6));
+    if (reading.running) balancePhase += (2 * Math.PI * dt) / reading.period;
+    pose = step(esc, pose, balanceAngleNow(), Math.max(dt, 1e-6), reading.running);
     drawMovement();
   }
   // Timegrapher clock.
@@ -111,15 +162,17 @@ function frame(now: number) {
 }
 
 // ---------- controls ----------
-function bindRange(id: string, key: keyof WatchSettings, fmt: (v: number) => string) {
+function bindRange(id: string, key: keyof WatchSettings, fmt: (v: number) => string, part: Highlight) {
   const el = $<HTMLInputElement>(id), out = $(`${id}-value`);
   const apply = () => { (user as any)[key] = Number(el.value); out.textContent = fmt(Number(el.value)); recompute(); drawControls(); };
-  el.oninput = apply; apply();
+  el.oninput = () => { apply(); touch(part); };
+  el.onpointerdown = () => { pointerHeld = true; touch(part); };
+  apply();
 }
-bindRange("regulator", "regulatorIndex", (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}° ${v > 0 ? "(toward F)" : v < 0 ? "(toward S)" : ""}`);
-bindRange("beat", "beatOffsetDeg", (v) => `${v.toFixed(1)}°`);
-bindRange("wind", "hoursSinceWind", (v) => `${v.toFixed(0)} h since wound`);
-bindRange("screws", "inertiaTrim", (v) => `${(v * 100).toFixed(2)} % inertia`);
+bindRange("regulator", "regulatorIndex", (v) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(2)}° ${v > 0 ? "(toward F)" : v < 0 ? "(toward S)" : ""}`, "regulator");
+bindRange("beat", "beatOffsetDeg", (v) => `${v.toFixed(1)}°`, "beat");
+bindRange("wind", "hoursSinceWind", (v) => `${v.toFixed(0)} h since wound`, "wind");
+bindRange("screws", "inertiaTrim", (v) => `${(v * 100).toFixed(2)} % inertia`, "screws");
 {
   const amt = $<HTMLInputElement>("poise"), ang = $<HTMLInputElement>("poise-angle");
   const apply = () => {
@@ -127,9 +180,11 @@ bindRange("screws", "inertiaTrim", (v) => `${(v * 100).toFixed(2)} % inertia`);
     $("poise-value").textContent = `${Number(amt.value).toFixed(2)} µg·cm`; $("poise-angle-value").textContent = `${ang.value}° on the rim`;
     recompute(); drawControls();
   };
-  amt.oninput = apply; ang.oninput = apply; apply();
+  amt.oninput = () => { apply(); touch("poise"); }; ang.oninput = () => { apply(); touch("poise"); };
+  amt.onpointerdown = ang.onpointerdown = () => { pointerHeld = true; touch("poise"); };
+  apply();
 }
-$<HTMLSelectElement>("position").onchange = (e) => { user.position = (e.target as HTMLSelectElement).value as WatchSettings["position"]; recompute(); drawControls(); };
+$<HTMLSelectElement>("position").onchange = (e) => { user.position = (e.target as HTMLSelectElement).value as WatchSettings["position"]; recompute(); drawControls(); touch("position"); };
 $<HTMLSelectElement>("position").innerHTML = POSITIONS.map((p) => `<option value="${p.id}">${p.label}</option>`).join("");
 $<HTMLSelectElement>("speed").onchange = (e) => { animSpeed = Number((e.target as HTMLSelectElement).value); };
 $("pause").onclick = () => { animPaused = !animPaused; $("pause").textContent = animPaused ? "Play" : "Pause"; };
@@ -150,7 +205,6 @@ $("calibre-name").textContent = calibre.name;
 
 // ---------- verify-render contract ----------
 const q = new URLSearchParams(location.search);
-let named: string | null = null;
 function timeForPhase(phase: Phase, beat: 0 | 1, frac: number): number {
   // Scan one period from T/4 with a fresh pose, find the phase window on the requested beat.
   const N = 4000;
@@ -171,6 +225,9 @@ if (q.has("state") && STATES[q.get("state")!]) {
   const s = STATES[named];
   loadPuzzle(s.puzzle);
   Object.assign(user, s.settings);
+  $<HTMLSelectElement>("position").value = user.position;
+  revealHeavySpot = !!s.reveal;
+  if (s.highlight) { hot = s.highlight; hotUntil = Infinity; }
   recompute();
   // Accumulate ticks for the requested sim span, then freeze everything.
   win = advanceTicks(win, reading, s.simSeconds, TRACE_BEATS);
