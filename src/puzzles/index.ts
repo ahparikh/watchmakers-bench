@@ -16,7 +16,8 @@ export interface Puzzle {
   band: (r: WatchReading, tg: Reading | null) => boolean;
   holdSeconds: number;
   explanation: string;
-  /** Which controls this puzzle shows. State of wind is a condition of the watch, not a repair, so every puzzle shows it. */
+  /** Which controls this puzzle shows, in display order, left to right. State of wind is a condition
+   *  of the watch, not a repair, so every puzzle shows it. */
   controls: ("regulator" | "beat" | "wind" | "screws" | "position" | "poise")[];
   /** For puzzles with no knob fix: a two-choice question ends them instead of a band. */
   question?: { prompt: string; choices: string[]; correct: number; whyCorrect: string };

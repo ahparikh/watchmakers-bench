@@ -125,6 +125,14 @@ function drawControls() {
   const show = (name: string) => !puzzle || puzzle.controls.includes(name as never) || puzzle.controls.length === 0;
   for (const name of ["regulator", "beat", "wind", "screws", "position"]) $(`ctl-${name}`).hidden = !show(name);
   $("ctl-poise").hidden = $("ctl-poise-angle").hidden = !show("poise");
+  // Controls appear in the order the puzzle lists them; free play keeps the page's own order.
+  const rank = (name: string) => (puzzle ? puzzle.controls.indexOf(name as never) : -1);
+  for (const name of ["regulator", "beat", "wind", "screws", "position", "poise"]) {
+    const order = rank(name) < 0 ? "" : String(rank(name) * 2);
+    $(`ctl-${name}`).style.order = order;
+    if (name === "poise") $("ctl-poise-angle").style.order = order === "" ? "" : String(rank(name) * 2 + 1);
+  }
+  $("readout-rate").style.order = "99";
   $("readout-rate").textContent = reading.running ? `${reading.rateSecondsPerDay >= 0 ? "+" : "−"}${Math.abs(reading.rateSecondsPerDay).toFixed(1)} s/day true rate` : "stopped";
 }
 
