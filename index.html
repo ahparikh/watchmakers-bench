@@ -36,40 +36,42 @@
     font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
   }
+  /* The bench: three columns that fill the window. Left rail = the job; centre = the movement;
+     right = the instrument with the adjustments under it. Each column scrolls on its own if it must. */
   .sheet {
-    max-width: 1280px; margin: 0 auto;
+    max-width: 1600px; margin: 0 auto;
     background: var(--sheet);
     border: 1.5px solid var(--ink);
     box-shadow: 0 0 0 4px var(--sheet), 0 0 0 5px var(--rule);
+    display: grid; grid-template-columns: 290px minmax(0, 1fr) 430px;
   }
 
-  /* Title block, as on an engineering sheet: one row of ruled cells. */
-  header {
-    display: grid; grid-template-columns: 1fr auto auto; align-items: stretch;
-    border-bottom: 1.5px solid var(--ink);
-  }
-  header > * { padding: 10px 16px; border-left: 1px solid var(--ink) }
-  header > :first-child { border-left: 0 }
+  /* Left rail: title block cells stacked, then the guide, then the job card. */
+  #rail { border-right: 1.5px solid var(--ink); display: flex; flex-direction: column; min-width: 0 }
+  header { border-bottom: 1.5px solid var(--ink) }
+  header > * { padding: 10px 16px; border-top: 1px solid var(--ink) }
+  header > :first-child { border-top: 0; padding: 14px 16px }
   header h1 { font-size: 21px; font-weight: 600; margin: 0; letter-spacing: -0.01em; line-height: 1.2 }
-  header .tagline { margin: 2px 0 0; color: var(--ink-2); font-size: 13.5px }
-  header .cell { display: flex; flex-direction: column; justify-content: center; min-width: 160px }
+  header .tagline { margin: 4px 0 0; color: var(--ink-2); font-size: 13.5px; line-height: 1.4 }
+  header .cell { display: flex; flex-direction: column; justify-content: center; min-width: 0 }
   header .cell small { font-size: 11.5px; color: var(--ink-3); line-height: 1.2 }
   header .calibre { font-size: 14.5px }
+  header select { margin-top: 3px; width: 100% }
+  #rail #onboarding { border-top: 1.5px solid var(--ink); border-bottom: 0; padding: 12px 16px; flex: 1 0 auto }
+  #rail #onboarding ol, #rail #bench-help .explainer { grid-template-columns: 1fr }
+  #rail #bench-help details, #rail #bench-help .hint { flex: 1 1 100% }
   select {
     font: inherit; font-size: 14px; color: var(--ink); background: var(--paper);
     border: 1px solid var(--ink); border-radius: 0; padding: 5px 8px;
   }
   header select { margin-top: 2px }
 
-  main {
-    display: grid; grid-template-columns: minmax(360px, 7fr) minmax(320px, 5fr); grid-template-rows: auto 1fr;
-    gap: 16px; padding: 16px;
-  }
+  main { padding: 16px; min-width: 0; min-height: 0; display: flex }
 
-  /* The movement drawing is the hero: full height, on a faint drafting grid that stays behind the ink. */
-  #movement-panel { grid-row: 1 / 3; border: 1px solid var(--ink); display: flex; flex-direction: column; min-height: 520px }
+  /* The movement drawing is the hero: the whole centre column, on a faint drafting grid behind the ink. */
+  #movement-panel { flex: 1 1 auto; min-width: 0; min-height: 0; border: 1px solid var(--ink); display: flex; flex-direction: column }
   #movement {
-    flex: 1 1 auto;
+    flex: 1 1 auto; min-height: 0; position: relative;
     background:
       linear-gradient(var(--rule-2) 1px, transparent 1px) -1px -1px / 32px 32px,
       linear-gradient(90deg, var(--rule-2) 1px, transparent 1px) -1px -1px / 32px 32px,
@@ -92,7 +94,9 @@
   .tempo #pause { margin: 0 0 10px; min-width: 76px; min-height: 34px }
 
   /* Timegrapher: one dark instrument case holding the screen and the readout strip. */
-  #timegrapher { background: var(--case); border: 1px solid var(--ink); padding: 10px 10px 6px; border-radius: 3px }
+  /* Right column: the instrument, then the adjustments it answers to. */
+  #instrument { border-left: 1.5px solid var(--ink); display: flex; flex-direction: column; min-width: 0; background: var(--sheet-2); overflow-x: hidden }
+  #timegrapher { background: var(--case); border: 1px solid var(--ink); padding: 10px 10px 6px; border-radius: 3px; margin: 16px }
   #timegrapher svg { width: 100%; display: block }
   .screen { fill: var(--screen) }
   .screen-edge { fill: none; stroke: #0a1712; stroke-width: 1 }
@@ -107,7 +111,7 @@
   .readouts .divider { stroke: var(--case-2); stroke-width: 1 }
 
   /* Puzzle: a paper job card. */
-  #puzzle { border: 1px solid var(--ink); background: var(--sheet); padding: 14px 16px 16px; align-self: start }
+  #puzzle { padding: 14px 16px 16px }
   #puzzle h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; line-height: 1.3; padding-bottom: 8px; border-bottom: 1px solid var(--rule) }
   #puzzle p { margin: 8px 0; max-width: 60ch }
   .symptom { color: var(--ink-2); font-style: italic }
@@ -136,13 +140,10 @@
   details summary:hover { text-decoration: underline }
   details p { color: var(--ink) }
 
-  /* Bench controls: one ruled strip of cells, each a labelled index slider, like the title block. */
-  footer {
-    display: flex; flex-wrap: wrap; align-items: stretch;
-    border-top: 1.5px solid var(--ink); background: var(--sheet-2);
-  }
-  footer > * { padding: 10px 16px 12px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin-bottom: -1px }
-  footer label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2); flex: 1 1 200px; min-width: 200px }
+  /* Adjustments: a two-up grid of ruled cells, each a labelled index slider. main.ts sets their order. */
+  footer { display: grid; grid-template-columns: 1fr 1fr; border-top: 1.5px solid var(--ink); margin-right: -1px }
+  footer > * { padding: 10px 16px 12px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); min-width: 0 }
+  footer label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--ink-2) }
   footer label[hidden] { display: none }
   footer .value { color: var(--ink); font-size: 13.5px; min-height: 1.4em }
   footer button, .tempo button {
@@ -152,10 +153,8 @@
   }
   footer button:hover { background: #fff }
   footer button:active { background: var(--ink); color: var(--sheet) }
-  footer select { min-height: 36px; margin-top: 4px; max-width: 220px }
-  /* Fixed width: this text changes with the watch's state, and a readout that resizes shifts the
-     flexing sliders beside it under a held pointer (the drag then fights its own layout). */
-  #readout-rate { margin-left: auto; color: var(--ink-2); font-size: 13.5px; align-self: flex-end; border-right: 0; padding-bottom: 14px; flex: 0 0 13.5em; box-sizing: border-box; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums }
+  footer select { min-height: 36px; margin-top: 4px; width: 100% }
+  #readout-rate { grid-column: 1 / -1; color: var(--ink-2); font-size: 13.5px; border-right: 0; border-bottom: 0; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums }
 
   input[type=range] {
     -webkit-appearance: none; appearance: none; width: 100%; height: 28px; margin: 0;
@@ -175,29 +174,48 @@
 
   @media (prefers-reduced-motion: reduce) { .hold .bar { transition: none } }
 
+  /* Wide screens: the sheet is exactly one window tall; nothing on the page scrolls. */
+  @media (min-width: 1100px) {
+    html, body { height: 100% }
+    body { overflow: hidden }
+    .sheet { height: calc(100vh - 36px); height: calc(100dvh - 36px) }
+    #rail, #instrument { min-height: 0; overflow-y: auto }
+    #movement svg { position: absolute; inset: 6px; width: calc(100% - 12px); height: calc(100% - 12px); max-height: none }
+  }
+
+  /* Mid widths: the rail becomes a title strip across the top, movement and instrument side by side. */
+  @media (max-width: 1099px) {
+    .sheet { grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr) }
+    #rail { grid-column: 1 / -1; border-right: 0; border-bottom: 1.5px solid var(--ink) }
+    header { display: grid; grid-template-columns: 1fr auto auto }
+    header > * { border-top: 0; border-left: 1px solid var(--ink) }
+    header > :first-child { border-left: 0; padding: 10px 16px }
+    header .cell { min-width: 160px }
+    #movement-panel { align-self: flex-start }
+  }
+
+  /* Phones: one column in working order: the job, the instrument and its sliders, then the movement. */
   @media (max-width: 760px) {
     body { padding: 8px }
-    .sheet { box-shadow: none }
+    .sheet { box-shadow: none; grid-template-columns: minmax(0, 1fr) }
+    #instrument { order: 2; border-left: 0; border-bottom: 1.5px solid var(--ink) }
+    main { order: 3; padding: 10px }
     header { grid-template-columns: 1fr 1fr }
     header > :first-child { grid-column: 1 / 3; border-bottom: 1px solid var(--ink) }
     header > :nth-child(2) { border-left: 0 }
     header .cell { min-width: 0 }
-    header select { max-width: 100% }
-    main { grid-template-columns: 1fr; padding: 10px; gap: 10px }
-    #movement-panel { grid-row: auto; min-height: 0 }
+    #timegrapher { margin: 10px }
     #movement svg { max-height: 62vh }
     .tempo { flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px }
     .tempo-label { flex: 1 1 100%; padding-bottom: 0 }
     .tempo-track { flex: 1 1 200px }
-    footer > * { border-right: 0 }
-    footer label { flex: 1 1 100%; min-width: 0; padding: 10px 12px 12px }
-    footer button { margin: 12px; width: calc(100% - 24px) }
-    #readout-rate { margin-left: 0; width: 100%; padding: 10px 12px 12px }
+    footer > * { padding: 10px 12px 12px }
   }
 </style>
 </head>
 <body>
   <div class="sheet">
+    <aside id="rail">
     <header>
       <div>
         <h1>The Watchmaker's Bench</h1>
@@ -206,14 +224,16 @@
       <div class="cell"><small>Calibre</small><span class="calibre" id="calibre-name"></span></div>
       <div class="cell"><small>Job</small><select id="puzzle-select" aria-label="Choose a puzzle"></select></div>
     </header>
+    <div id="puzzle"></div>
+    </aside>
     <main>
       <div id="movement-panel">
         <div class="tempo" id="tempo"></div>
         <div id="movement"></div>
       </div>
-      <div id="timegrapher"></div>
-      <div id="puzzle"></div>
     </main>
+    <section id="instrument" aria-label="Timegrapher and adjustments">
+    <div id="timegrapher"></div>
     <footer>
       <label id="ctl-regulator">Regulator index <input id="regulator" type="range" min="-3" max="3" step="0.05" value="0" /><span class="value" id="regulator-value"></span></label>
       <label id="ctl-beat">Beat adjustment (stud) <input id="beat" type="range" min="-10" max="10" step="0.1" value="0" /><span class="value" id="beat-value"></span></label>
@@ -226,11 +246,15 @@
       <button id="pause">Pause</button>
       <span id="readout-rate"></span>
     </footer>
+    </section>
   </div>
   <script type="module" src="/src/main.ts"></script>
   <script type="module">
     import { mountSpeedControl } from "/src/view/speed.ts";
     mountSpeedControl(document.getElementById("tempo"), document.getElementById("speed"), document.getElementById("pause"));
+    // Onboarding mounts its guide before <main>; it reads in the rail, under the job card it explains.
+    const guide = document.getElementById("onboarding");
+    if (guide) document.getElementById("rail").appendChild(guide);
   </script>
 </body>
 </html>

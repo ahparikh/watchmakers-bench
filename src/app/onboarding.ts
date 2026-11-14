@@ -67,9 +67,9 @@ const FIRST_RUN = `<div class="first-run">
     </div>
   </div>
   <ol>
-    <li><b>Left: the movement.</b> The tick-tock engine of a watch, running live. The big ring is the balance; it swings five times a second.</li>
-    <li><b>Right: the timegrapher.</b> The instrument a watchmaker listens with. It turns ticks into three numbers. The first, <b>rate</b>, is seconds gained or lost per day.</li>
-    <li><b>Your job is on the card.</b> Read the symptom, then move one slider at the bottom of the page. You are winning when the bar on the card fills.</li>
+    <li><b>The drawing is the movement.</b> The tick-tock engine of a watch, running live. The big ring is the balance; it swings five times a second.</li>
+    <li><b>The dark screen is the timegrapher.</b> The instrument a watchmaker listens with. It turns ticks into three numbers. The first, <b>rate</b>, is seconds gained or lost per day.</li>
+    <li><b>Your job is on the card.</b> Read the symptom, then move one slider under the dark screen. You are winning when the bar on the card fills.</li>
   </ol>
 </div>`;
 
