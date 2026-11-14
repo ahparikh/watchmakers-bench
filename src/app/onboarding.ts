@@ -69,7 +69,7 @@ const STEPS: Step[] = [
       "The drawing is a live watch movement. The dark screen is the instrument that listens to it.",
       "In eight short steps you will learn what each part does and which slider to touch when the watch runs wrong.",
       "While you read, every slider is unlocked. Your first job loads at the end.",
-      "Two minutes. Skip any time and come back from the strip above the pictures.",
+      "Two minutes. Skip any time and come back with <b>Replay the guide</b>, under the job card.",
     ],
   },
   {
@@ -87,7 +87,7 @@ const STEPS: Step[] = [
   {
     title: "2 · The escapement: one tooth per tick",
     body: [
-      "Gears carry the spring's push to the escape wheel, the toothed wheel at the bottom of the drawing.",
+      "Gears carry the spring's push to the escape wheel, the toothed wheel in the drawing.",
       "The pallet fork above it stops the wheel and lets one tooth go at a time. Each release is a tick.",
       "Each tick also gives the balance a tiny push, like pushing someone on a swing.",
     ],
@@ -101,7 +101,7 @@ const STEPS: Step[] = [
   {
     title: "3 · The balance: the part that keeps time",
     body: [
-      "The big ring at the top is the balance. The fine spiral inside it is the hairspring, which pulls it back to centre.",
+      "The big ring is the balance. The fine spiral inside it is the hairspring, which pulls it back to centre.",
       "Together they set how long one swing takes. Here, five swings a second.",
       "Nothing else in the watch sets the rate. Every timekeeping fault is about this swing.",
     ],
@@ -161,11 +161,11 @@ const STEPS: Step[] = [
   {
     title: "8 · Your first job",
     body: [
-      "Jobs live in the <b>Job</b> picker at the top right. The first one: the owner's watch gains about 40 seconds a day.",
+      "Jobs live in the <b>Job</b> picker. The first one: the owner's watch gains about 40 seconds a day.",
       "Gaining means the swing is too quick, so the regulator is the part to touch.",
       "Slide <b>Regulator index</b> toward S until <b>rate</b> reads within ±5. Hold it there and the bar on the job card fills.",
     ],
-    fix: "Press <b>Start fixing</b> to load the job. Stuck for a minute? A hint appears in the strip above the pictures.",
+    fix: "Press <b>Start fixing</b> to load the job. Stuck for a minute? A hint appears under the job card.",
     spot: "#puzzle-select",
   },
 ];
@@ -195,11 +195,12 @@ const STYLE = `
   #guide-backdrop[hidden] { display: none }
   #guide-frames[hidden] { display: none }
   .guide-frame { position: fixed; z-index: 1001; pointer-events: none; border: 3px solid var(--ruby); border-radius: 4px }
-  #guide { position: fixed; right: 24px; top: 120px; z-index: 1002; width: min(420px, 46vw);
-    max-height: calc(100vh - 140px); overflow: auto; background: var(--sheet); color: var(--ink); border: 1.5px solid var(--ink);
+  #guide { position: fixed; left: 20px; top: 96px; z-index: 1002; width: min(340px, 44vw);
+    max-height: calc(100vh - 116px); overflow: auto; background: var(--sheet); color: var(--ink); border: 1.5px solid var(--ink);
     box-shadow: 0 0 0 4px var(--sheet), 0 0 0 5px var(--rule), 0 12px 32px rgba(0,0,0,0.25); padding: 16px 18px 14px; font-size: 14.5px; line-height: 1.5 }
-  #guide.left { right: auto; left: 24px }
-  #guide.center { right: auto; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 40px) }
+  #guide.right { left: auto; right: 20px }
+  #guide.low { top: auto; bottom: 20px }
+  #guide.center { right: auto; bottom: auto; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 40px) }
   #guide[hidden] { display: none }
   #guide h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; line-height: 1.3; padding-bottom: 8px; border-bottom: 1px solid var(--rule) }
   #guide p { margin: 6px 0; max-width: 62ch }
@@ -215,7 +216,7 @@ const STYLE = `
   @media (max-width: 760px) {
     #bench-help .explainer { grid-template-columns: 1fr }
     /* No room at the side on a phone: the card sits at the top and the page is padded below it. */
-    #guide, #guide.left, #guide.center { transform: none; left: 16px; right: 16px; top: 10px; width: auto; padding: 14px; font-size: 14px; max-height: calc(100vh - 20px) }
+    #guide, #guide.right, #guide.low, #guide.center { transform: none; left: 16px; right: 16px; top: 10px; bottom: auto; width: auto; padding: 14px; font-size: 14px; max-height: calc(100vh - 20px) }
   }
 `;
 
@@ -335,19 +336,26 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
         else if (top < 0) window.scrollBy({ top, behavior: "auto" });
       }
     }
+    card.classList.remove("right", "low", "center");
     if (narrow()) {
-      card.classList.remove("left", "center");
       const k = boxes()[0], c = card.getBoundingClientRect();
       if (k && k.t < c.bottom + 4) window.scrollBy({ top: k.t - c.bottom - 4, behavior: "auto" });
     } else if (!selectors.length) {
       // Nothing to point at (the welcome): centred on the page.
-      card.classList.remove("left"); card.classList.add("center");
+      card.classList.add("center");
     } else {
-      // The card lives on the right. It crosses to the left only when a lit part is under it there.
-      card.classList.remove("left", "center");
-      const c = card.getBoundingClientRect();
-      const under = boxes().some((k) => k.l < c.right && k.r > c.left && k.t < c.bottom && k.b > c.top);
-      card.classList.toggle("left", under);
+      // The card lives over the left rail (the job card is not needed while reading). It moves only
+      // when a lit part would be under it there: then the first slot that covers none, else the least.
+      const lit = boxes();
+      let best: string[] = [], least = Infinity;
+      for (const slot of [[], ["right"], ["low"], ["right", "low"]]) {
+        card.classList.remove("right", "low"); card.classList.add(...slot);
+        const c = card.getBoundingClientRect();
+        const covered = lit.reduce((sum, k) => sum + Math.max(0, Math.min(k.r, c.right) - Math.max(k.l, c.left)) * Math.max(0, Math.min(k.b, c.bottom) - Math.max(k.t, c.top)), 0);
+        if (covered < least) { least = covered; best = slot; }
+        if (covered === 0) break;
+      }
+      card.classList.remove("right", "low"); card.classList.add(...best);
     }
     cancelAnimationFrame(raf); place();
   };

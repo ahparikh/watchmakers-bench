@@ -79,7 +79,7 @@ try {
   check("step 4 card does not cover a lit part", !f.some((k) => overlap(card, k)), JSON.stringify({ card, f }));
   check("step 4 balance is on screen", f[1].t >= 0 && f[1].b <= 900, JSON.stringify(f[1]));
   check("card stays put between steps", Math.abs(card.t - cardAtStep1.t) < 1 && Math.abs(card.l - cardAtStep1.l) < 1, JSON.stringify({ cardAtStep1, card }));
-  check("card is on the right, off the drawing", card.l >= mov.r - 1, JSON.stringify({ card, mov }));
+  check("card sits over the left rail", card.l < 40 && card.r < mov.l + 60, JSON.stringify({ card, mov }));
   check("lit slider is usable through the dim layer", await page.evaluate(() => { const r = document.querySelector("#regulator").getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.id === "regulator"; }));
   await page.screenshot({ path: "shots/onboarding-live-guide-regulator.png" });
   await page.keyboard.press("ArrowLeft");
@@ -93,7 +93,7 @@ try {
   await next(page);
   await next(page);
   f = await frames(page); card = await rect(page, "#guide");
-  check("step 7 lights the timegrapher and the card crosses to the left", f.length === 1 && contains(f[0], await rect(page, "#timegrapher")) && !overlap(card, f[0]) && card.l < 40, JSON.stringify({ card, f }));
+  check("step 7 lights the timegrapher, uncovered, card still on the left", f.length === 1 && contains(f[0], await rect(page, "#timegrapher")) && !overlap(card, f[0]) && card.l < 40, JSON.stringify({ card, f }));
   await page.screenshot({ path: "shots/onboarding-live-guide-instrument.png" });
   await next(page);
   f = await frames(page); card = await rect(page, "#guide");
