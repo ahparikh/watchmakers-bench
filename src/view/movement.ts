@@ -114,8 +114,8 @@ export function renderMovement(p: EscapementParams, s: EscapementPose, timeMs?: 
     return { hs, stud, regulator, screws, cut, heavy, swing };
   })() : null;
   const gravity = adj ? (adj.view.gravity === "down"
-    ? `<g class="gravity ${hot === "position" ? "hot" : ""}" transform="translate(${half - 22},${-top + 20})"><line x1="0" y1="0" x2="0" y2="18"/><polyline points="-4,13 0,18 4,13"/><text x="7" y="14">g</text></g>`
-    : `<g class="gravity ${hot === "position" ? "hot" : ""}" transform="translate(${half - 22},${-top + 24})"><circle cx="0" cy="0" r="6"/>${adj.view.gravity === "into-page" ? `<line x1="-4" y1="-4" x2="4" y2="4"/><line x1="-4" y1="4" x2="4" y2="-4"/>` : `<circle cx="0" cy="0" r="1.4" fill="currentColor"/>`}<text x="10" y="4">g</text></g>`) : "";
+    ? `<g class="gravity ${hot === "position" ? "hot" : ""}" transform="translate(${half - 24},${-bottom - 32})"><line x1="0" y1="0" x2="0" y2="18"/><polyline points="-4,13 0,18 4,13"/><text x="7" y="14">g</text></g>`
+    : `<g class="gravity ${hot === "position" ? "hot" : ""}" transform="translate(${half - 24},${-bottom - 18})"><circle cx="0" cy="0" r="6"/>${adj.view.gravity === "into-page" ? `<line x1="-4" y1="-4" x2="4" y2="4"/><line x1="-4" y1="4" x2="4" y2="-4"/>` : `<circle cx="0" cy="0" r="1.4" fill="currentColor"/>`}<text x="10" y="4">g</text></g>`) : "";
   const note = s.contact ? `${PHASE_NAME[s.phase]} on the ${s.contact.stone} pallet, ${s.contact.face} face` : `${PHASE_NAME[s.phase]}, wheel free`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-half} ${-top} ${2 * half} ${top - bottom}" data-phase="${s.phase}" font-family="Avenir Next, Segoe UI, Helvetica Neue, Helvetica, Arial, sans-serif">
