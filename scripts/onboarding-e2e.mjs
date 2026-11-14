@@ -44,6 +44,13 @@ try {
   const mov = await rect(page, "#movement");
   check("step 2 lights the escapement, not the whole drawing", f.length === 1 && f[0].h < mov.h * 0.8 && contains(mov, f[0]), JSON.stringify(f));
   check("step 2 card does not cover the escapement", !overlap(card, f[0]), JSON.stringify({ card, f }));
+  check("guide runs the movement in slow motion", (await page.inputValue("#speed-slider")) === "1" && (await page.inputValue("#speed")) === "0.05");
+  // The lit box must hold still while the parts inside it move.
+  await page.waitForTimeout(600);
+  const seen = new Set();
+  const tooth0 = await page.getAttribute("#movement polygon.tooth", "points");
+  for (let i = 0; i < 25; i++) { const k = (await frames(page))[0]; seen.add([k.l, k.t, k.r, k.b].join(",")); await page.waitForTimeout(40); }
+  check("step 2 lit box does not flicker while the escapement moves", seen.size === 1 && (await page.getAttribute("#movement polygon.tooth", "points")) !== tooth0, [...seen].join(" | "));
   await page.screenshot({ path: "shots/onboarding-live-guide-escapement.png" });
 
   await next(page);
@@ -98,6 +105,7 @@ try {
   check("no dim layer or frame left behind", !(await page.isVisible("#guide-backdrop")) && !(await page.isVisible(".guide-frame")));
   await page.waitForTimeout(900);
   check("no glow left behind", (await page.$$("#movement g.part.hot")).length === 0);
+  check("movement speed is back to the reader's setting", (await page.inputValue("#speed-slider")) === "2");
   await page.reload();
   await page.waitForSelector("#onboarding");
   check("guide stays closed after reload", !(await page.isVisible("#guide")));

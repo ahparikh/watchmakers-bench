@@ -36,6 +36,13 @@ const HINTS: Record<string, string> = {
   "position-error": "Set <b>Position</b> to crown up, then crown down: the rate changes sign. The heavy spot is at the bottom when crown up. Remove weight there with <b>Poising</b>, about 10 µg·cm at 0°.",
 };
 
+/** A lit region: a selector, or a selector with its own margin in pixels. Anchor on parts that hold
+ *  still (the balance ring, the wheel's tip circle) and pad for the parts that move around them,
+ *  so the box never changes while the movement runs. */
+type Spot = string | { sel: string; pad: number };
+/** The balance ring, with room for the screws, stud track, swing arcs and regulator scale round it. */
+const BALANCE: Spot = { sel: "#movement circle.balance, #movement text.mark", pad: 22 };
+
 interface Step {
   title: string;
   /** Short paragraphs; each line under about 15 words. */
@@ -44,10 +51,13 @@ interface Step {
   fix?: string;
   /** CSS selector for the part(s) to spotlight: the frame wraps the union of their boxes. Re-measured
    *  every frame, because the drawing is redrawn every frame. Hidden elements are ignored. */
-  spot?: string | string[];
+  spot?: Spot | Spot[];
   /** Id of the control whose part should glow on the drawing while this step shows (main.ts lights
    *  the part a control acts on while that control is held). */
   hot?: string;
+  /** Movement speed stop for this step (index into the speed slider; 0 is the slowest, 1/100).
+   *  The guide runs the movement in slow motion so it does not distract from the reading. */
+  speed?: number;
   /** Section anchor in the manual. */
   manual?: { anchor: string; label: string };
 }
@@ -70,7 +80,7 @@ const STEPS: Step[] = [
       "A healthy spring runs about 40 hours.",
     ],
     fix: "<b>State of wind</b> slider · Puzzle 3, Afternoon slump. Drag it now: the red arcs round the balance show how far it swings.",
-    spot: ["#ctl-wind", "#movement circle.balance, #movement path.swing, #movement circle.ghostpin"],
+    spot: ["#ctl-wind", BALANCE],
     hot: "wind",
     manual: { anchor: "power", label: "Power" },
   },
@@ -81,8 +91,11 @@ const STEPS: Step[] = [
       "The pallet fork above it stops the wheel and lets one tooth go at a time. Each release is a tick.",
       "Each tick also gives the balance a tiny push, like pushing someone on a swing.",
     ],
-    fix: "Nothing to adjust. Watch it in the drawing; slow it with <b>Movement speed</b>.",
-    spot: "#movement .wheel, #movement .tooth, #movement .lever, #movement .stone",
+    fix: "Nothing to adjust. It is running in slow motion here so you can watch one tooth escape.",
+    // Both centreline circles: the wheel's tip circle and the impulse pin's path. Neither moves, and
+    // between them they span the wheel, the fork and the pin.
+    spot: { sel: "#movement circle.centreline", pad: 12 },
+    speed: 1,
     manual: { anchor: "escapement", label: "Escapement" },
   },
   {
@@ -93,7 +106,7 @@ const STEPS: Step[] = [
       "Nothing else in the watch sets the rate. Every timekeeping fault is about this swing.",
     ],
     fix: "<b>Timing screws</b> are the brass dots on the rim. Drag the slider: screws further out mean slower swings.",
-    spot: ["#movement circle.balance, #movement circle.screw", "#ctl-screws"],
+    spot: [BALANCE, "#ctl-screws"],
     hot: "screws",
     manual: { anchor: "balance", label: "Balance" },
   },
@@ -106,7 +119,7 @@ const STEPS: Step[] = [
       "Toward <b>S</b> (slow): the working spring gets longer and softer. The balance swings slower and the watch loses time.",
     ],
     fix: "<b>Regulator index</b> slider · Puzzle 1, Runs fast. Drag it now and watch the arm move along the spring.",
-    spot: ["#ctl-regulator", "#movement circle.balance, #movement line.regulator, #movement text.mark"],
+    spot: ["#ctl-regulator", BALANCE],
     hot: "regulator",
     manual: { anchor: "balance", label: "Balance" },
   },
@@ -118,7 +131,7 @@ const STEPS: Step[] = [
       "A watchmaker calls that beat error. It sounds like a limp.",
     ],
     fix: "<b>Beat adjustment</b> slider · Puzzle 2, Out of beat. Drag it now and watch the stud and the spring turn.",
-    spot: ["#ctl-beat", "#movement circle.balance, #movement circle.stud"],
+    spot: ["#ctl-beat", BALANCE],
     hot: "beat",
     manual: { anchor: "balance", label: "Balance" },
   },
@@ -130,7 +143,7 @@ const STEPS: Step[] = [
       "If one spot on the ring is heavier, gravity drags on it every swing when the watch stands up, and the rate drifts.",
     ],
     fix: "<b>Position</b> and <b>Poising</b> · Puzzle 4, Position error. Change Position: the drawing turns and the <i>g</i> marker shows gravity. Poising drills the dashed spot on the rim.",
-    spot: ["#ctl-poise, #ctl-poise-angle, #ctl-position", "#movement circle.balance, #movement circle.cut", "#movement g.gravity"],
+    spot: ["#ctl-poise, #ctl-poise-angle, #ctl-position", BALANCE, "#movement g.gravity"],
     hot: "poise",
     manual: { anchor: "mainplate", label: "Mainplate" },
   },
@@ -255,7 +268,7 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
   card.tabIndex = -1;
   document.body.append(backdrop, frames, card);
 
-  let step = 0, open = false, selectors: string[] = [], raf = 0;
+  let step = 0, open = false, selectors: Spot[] = [], raf = 0;
   const narrow = () => window.matchMedia("(max-width: 760px)").matches;
   /** Phones only: the page is padded below the card, since there is no side to dock it on.
    *  The band only grows during a tour, so content does not shift between steps. */
@@ -270,10 +283,10 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
   /** The job that was selected when the guide opened; Skip puts it back. */
   let previousJob = "";
 
-  const PAD = 8;
   type Box = { l: number; t: number; r: number; b: number };
   /** Padded union of one selector's visible elements, in viewport pixels. */
-  const measure = (selector: string): Box | null => {
+  const measure = (spot: Spot): Box | null => {
+    const selector = typeof spot === "string" ? spot : spot.sel, PAD = typeof spot === "string" ? 8 : spot.pad;
     let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity, n = 0;
     for (const el of Array.from(document.querySelectorAll<Element>(selector))) {
       if (el instanceof HTMLElement && el.hidden) continue;
@@ -283,7 +296,22 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     }
     return n ? { l: l - PAD, t: t - PAD, r: r + PAD, b: b + PAD } : null;
   };
-  const boxes = () => selectors.map(measure).filter((k): k is Box => k !== null);
+  /** Largest box seen for each selector this step, in page coordinates. Parts move (teeth, fork,
+   *  swing arcs), so a box re-measured every frame flickers; one that only grows settles at once. */
+  let steady: (Box | null)[] = [];
+  const settle = () => { steady = []; };
+  const boxes = () => {
+    const sx = window.scrollX, sy = window.scrollY;
+    return selectors.map((sel, i) => {
+      const k = measure(sel), was = steady[i] ?? null;
+      if (k) {
+        const now = { l: Math.floor(k.l + sx), t: Math.floor(k.t + sy), r: Math.ceil(k.r + sx), b: Math.ceil(k.b + sy) };
+        steady[i] = was ? { l: Math.min(was.l, now.l), t: Math.min(was.t, now.t), r: Math.max(was.r, now.r), b: Math.max(was.b, now.b) } : now;
+      }
+      const g = steady[i] ?? null;
+      return g ? { l: g.l - sx, t: g.t - sy, r: g.r - sx, b: g.b - sy } : null;
+    }).filter((k): k is Box => k !== null);
+  };
   /** Cut the holes and move the frames. Runs every frame: the drawing is redrawn every frame. */
   const place = () => {
     const ks = boxes(), W = window.innerWidth, H = window.innerHeight;
@@ -293,9 +321,10 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     ks.forEach((k, i) => Object.assign((frames.children[i] as HTMLElement).style, { left: `${k.l}px`, top: `${k.t}px`, width: `${k.r - k.l}px`, height: `${k.b - k.t}px` }));
     if (open) raf = requestAnimationFrame(place);
   };
-  const spot = (sel?: string | string[]) => {
+  const spot = (sel?: Spot | Spot[]) => {
     selectors = sel === undefined ? [] : Array.isArray(sel) ? sel : [sel];
-    const first = selectors.length ? document.querySelector(selectors[0]) : null;
+    settle();
+    const first = selectors.length ? document.querySelector(typeof selectors[0] === "string" ? selectors[0] : selectors[0].sel) : null;
     first?.scrollIntoView({ block: "nearest", behavior: "auto" });
     // Bring every lit part on screen when they fit together (a footer slider plus the balance).
     const all = boxes();
@@ -331,6 +360,15 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     const pos = document.getElementById("position") as HTMLSelectElement | null;
     if (pos && pos.selectedIndex > 0) { pos.selectedIndex = 0; pos.dispatchEvent(new Event("change")); }
   };
+  /** Movement speed: the guide slows the drawing right down, then puts the reader's choice back. */
+  const speedSlider = () => document.getElementById("speed-slider") as HTMLInputElement | null;
+  let speedBefore: string | null = null;
+  const setSpeed = (value: string) => {
+    const el = speedSlider();
+    if (!el) return;
+    if (speedBefore === null) speedBefore = el.value;
+    if (el.value !== value) { el.value = value; el.dispatchEvent(new Event("input")); }
+  };
   /** main.ts makes a part glow while its control is held. Hold the step's control; let go of the last. */
   let hotId: string | undefined;
   const arm = (id?: string) => {
@@ -357,6 +395,7 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     card.querySelectorAll<HTMLButtonElement>("[data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act!)));
     reserveBand();
     resetControls();
+    setSpeed(String(s.speed ?? 0));
     arm(s.hot);
     spot(s.spot);
     card.querySelector<HTMLButtonElement>(".primary")?.focus();
@@ -368,7 +407,11 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     write(GUIDE_DONE_KEY, "1");
     document.removeEventListener("keydown", onKey);
     window.removeEventListener("pointerup", rearm);
+    window.removeEventListener("resize", settle);
+    document.removeEventListener("change", settle, true);
     resetControls(); arm(undefined);
+    if (speedBefore !== null) { const back = speedBefore; setSpeed(back); }
+    speedBefore = null;
     // Finishing loads the first job; skipping puts back whatever was selected before.
     selectPuzzle(finished ? "runs-fast" : previousJob);
     onClose();
@@ -396,6 +439,10 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     card.hidden = backdrop.hidden = frames.hidden = false;
     document.addEventListener("keydown", onKey);
     window.addEventListener("pointerup", rearm);
+    // A resize, or a new Position (the drawing turns), moves the parts for good: measure afresh.
+    window.addEventListener("resize", settle);
+    document.addEventListener("change", settle, true);
+    speedBefore = null;
     render();
   };
 }
