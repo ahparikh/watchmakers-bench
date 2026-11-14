@@ -153,7 +153,9 @@
   footer button:hover { background: #fff }
   footer button:active { background: var(--ink); color: var(--sheet) }
   footer select { min-height: 36px; margin-top: 4px; max-width: 220px }
-  #readout-rate { margin-left: auto; color: var(--ink-2); font-size: 13.5px; align-self: flex-end; border-right: 0; padding-bottom: 14px }
+  /* Fixed width: this text changes with the watch's state, and a readout that resizes shifts the
+     flexing sliders beside it under a held pointer (the drag then fights its own layout). */
+  #readout-rate { margin-left: auto; color: var(--ink-2); font-size: 13.5px; align-self: flex-end; border-right: 0; padding-bottom: 14px; flex: 0 0 13.5em; box-sizing: border-box; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums }
 
   input[type=range] {
     -webkit-appearance: none; appearance: none; width: 100%; height: 28px; margin: 0;
