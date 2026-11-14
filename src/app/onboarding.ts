@@ -45,6 +45,9 @@ interface Step {
   /** CSS selector for the part(s) to spotlight: the frame wraps the union of their boxes. Re-measured
    *  every frame, because the drawing is redrawn every frame. Hidden elements are ignored. */
   spot?: string | string[];
+  /** Id of the control whose part should glow on the drawing while this step shows (main.ts lights
+   *  the part a control acts on while that control is held). */
+  hot?: string;
   /** Section anchor in the manual. */
   manual?: { anchor: string; label: string };
 }
@@ -66,8 +69,9 @@ const STEPS: Step[] = [
       "Fully wound it pushes hard. As a day passes it pushes less, and the balance swings less.",
       "A healthy spring runs about 40 hours.",
     ],
-    fix: "<b>State of wind</b> slider · Puzzle 3, Afternoon slump",
-    spot: "#ctl-wind",
+    fix: "<b>State of wind</b> slider · Puzzle 3, Afternoon slump. Drag it now: the red arcs round the balance show how far it swings.",
+    spot: ["#ctl-wind", "#movement circle.balance, #movement path.swing, #movement circle.ghostpin"],
+    hot: "wind",
     manual: { anchor: "power", label: "Power" },
   },
   {
@@ -84,35 +88,38 @@ const STEPS: Step[] = [
   {
     title: "3 · The balance: the part that keeps time",
     body: [
-      "The big ring at the top is the balance. A fine spiral spring, the hairspring, pulls it back to centre.",
+      "The big ring at the top is the balance. The fine spiral inside it is the hairspring, which pulls it back to centre.",
       "Together they set how long one swing takes. Here, five swings a second.",
       "Nothing else in the watch sets the rate. Every timekeeping fault is about this swing.",
     ],
-    fix: "<b>Timing screws</b> change the ring's mass; mass further out means slower swings.",
-    spot: ["#movement circle.balance", "#ctl-screws"],
+    fix: "<b>Timing screws</b> are the brass dots on the rim. Drag the slider: screws further out mean slower swings.",
+    spot: ["#movement circle.balance, #movement circle.screw", "#ctl-screws"],
+    hot: "screws",
     manual: { anchor: "balance", label: "Balance" },
   },
   {
     title: "4 · The regulator: faster or slower",
     body: [
-      "The hairspring is the fine spiral inside the balance ring. It is not drawn here.",
-      "The regulator is a small lever with two pins that grip the spring near its outer end. Only the spring between the pins and the centre does the work.",
+      "The regulator is the short arm at the edge of the balance, pointing between <b>F</b> and <b>S</b>.",
+      "Its two pins grip the hairspring near its outer end. Only the spring between the pins and the centre does the work.",
       "Toward <b>F</b> (fast): the working spring gets shorter and stiffer. The balance swings quicker and the watch gains time.",
       "Toward <b>S</b> (slow): the working spring gets longer and softer. The balance swings slower and the watch loses time.",
     ],
-    fix: "<b>Regulator index</b> slider · Puzzle 1, Runs fast",
-    spot: ["#ctl-regulator", "#movement circle.balance"],
+    fix: "<b>Regulator index</b> slider · Puzzle 1, Runs fast. Drag it now and watch the arm move along the spring.",
+    spot: ["#ctl-regulator", "#movement circle.balance, #movement line.regulator, #movement text.mark"],
+    hot: "regulator",
     manual: { anchor: "balance", label: "Balance" },
   },
   {
     title: "5 · The stud: tick equals tock",
     body: [
-      "The hairspring's outer end is pinned to a carrier called the stud.",
-      "Turning the stud rotates where the balance rests. If the rest point is off centre, tick and tock take unequal times.",
+      "The hairspring's outer end is pinned to the stud, the dot on the curved track beside the balance.",
+      "Sliding the stud along its track turns the whole spring, and with it where the balance rests. Off centre, tick and tock take unequal times.",
       "A watchmaker calls that beat error. It sounds like a limp.",
     ],
-    fix: "<b>Beat adjustment</b> slider · Puzzle 2, Out of beat",
-    spot: ["#ctl-beat", "#movement circle.balance"],
+    fix: "<b>Beat adjustment</b> slider · Puzzle 2, Out of beat. Drag it now and watch the stud and the spring turn.",
+    spot: ["#ctl-beat", "#movement circle.balance, #movement circle.stud"],
+    hot: "beat",
     manual: { anchor: "balance", label: "Balance" },
   },
   {
@@ -122,8 +129,9 @@ const STEPS: Step[] = [
       "Lying flat it rests on a pivot tip. On edge the pivots rub their sides, so the swing shrinks.",
       "If one spot on the ring is heavier, gravity drags on it every swing when the watch stands up, and the rate drifts.",
     ],
-    fix: "<b>Position</b> and <b>Poising</b> · Puzzle 4, Position error",
-    spot: ["#ctl-poise, #ctl-poise-angle, #ctl-position", "#movement circle.balance"],
+    fix: "<b>Position</b> and <b>Poising</b> · Puzzle 4, Position error. Change Position: the drawing turns and the <i>g</i> marker shows gravity. Poising drills the dashed spot on the rim.",
+    spot: ["#ctl-poise, #ctl-poise-angle, #ctl-position", "#movement circle.balance, #movement circle.cut", "#movement g.gravity"],
+    hot: "poise",
     manual: { anchor: "mainplate", label: "Mainplate" },
   },
   {
@@ -178,6 +186,7 @@ const STYLE = `
     max-height: calc(100vh - 140px); overflow: auto; background: var(--sheet); color: var(--ink); border: 1.5px solid var(--ink);
     box-shadow: 0 0 0 4px var(--sheet), 0 0 0 5px var(--rule), 0 12px 32px rgba(0,0,0,0.25); padding: 16px 18px 14px; font-size: 14.5px; line-height: 1.5 }
   #guide.left { right: auto; left: 24px }
+  #guide.center { right: auto; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 40px) }
   #guide[hidden] { display: none }
   #guide h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; line-height: 1.3; padding-bottom: 8px; border-bottom: 1px solid var(--rule) }
   #guide p { margin: 6px 0; max-width: 62ch }
@@ -193,7 +202,7 @@ const STYLE = `
   @media (max-width: 760px) {
     #bench-help .explainer { grid-template-columns: 1fr }
     /* No room at the side on a phone: the card sits at the top and the page is padded below it. */
-    #guide, #guide.left { left: 16px; right: 16px; top: 10px; width: auto; padding: 14px; font-size: 14px; max-height: calc(100vh - 20px) }
+    #guide, #guide.left, #guide.center { transform: none; left: 16px; right: 16px; top: 10px; width: auto; padding: 14px; font-size: 14px; max-height: calc(100vh - 20px) }
   }
 `;
 
@@ -298,18 +307,40 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
       }
     }
     if (narrow()) {
-      card.classList.remove("left");
+      card.classList.remove("left", "center");
       const k = boxes()[0], c = card.getBoundingClientRect();
       if (k && k.t < c.bottom + 4) window.scrollBy({ top: k.t - c.bottom - 4, behavior: "auto" });
+    } else if (!selectors.length) {
+      // Nothing to point at (the welcome): centred on the page.
+      card.classList.remove("left"); card.classList.add("center");
     } else {
       // The card lives on the right. It crosses to the left only when a lit part is under it there.
-      card.classList.remove("left");
+      card.classList.remove("left", "center");
       const c = card.getBoundingClientRect();
       const under = boxes().some((k) => k.l < c.right && k.r > c.left && k.t < c.bottom && k.b > c.top);
       card.classList.toggle("left", under);
     }
     cancelAnimationFrame(raf); place();
   };
+  /** Put every control back to neutral, so what a reader tried on one step does not colour the next. */
+  const resetControls = () => {
+    for (const id of ["regulator", "beat", "wind", "screws", "poise", "poise-angle"]) {
+      const el = document.getElementById(id) as HTMLInputElement | null;
+      if (el && Number(el.value) !== 0) { el.value = "0"; el.dispatchEvent(new Event("input")); }
+    }
+    const pos = document.getElementById("position") as HTMLSelectElement | null;
+    if (pos && pos.selectedIndex > 0) { pos.selectedIndex = 0; pos.dispatchEvent(new Event("change")); }
+  };
+  /** main.ts makes a part glow while its control is held. Hold the step's control; let go of the last. */
+  let hotId: string | undefined;
+  const arm = (id?: string) => {
+    hotId = id;
+    window.dispatchEvent(new Event("pointerup"));
+    if (id) document.getElementById(id)?.dispatchEvent(new Event("pointerdown"));
+  };
+  // A real pointer release (after a drag, or a click on the card) lets go too: take hold again.
+  const rearm = (e: Event) => { if (open && hotId && e.isTrusted) setTimeout(() => { if (open && hotId) document.getElementById(hotId)?.dispatchEvent(new Event("pointerdown")); }, 0); };
+
   const render = () => {
     const s = STEPS[step], last = step === STEPS.length - 1, first = step === 0;
     card.innerHTML = `
@@ -325,6 +356,8 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
       </div>`;
     card.querySelectorAll<HTMLButtonElement>("[data-act]").forEach((b) => (b.onclick = () => act(b.dataset.act!)));
     reserveBand();
+    resetControls();
+    arm(s.hot);
     spot(s.spot);
     card.querySelector<HTMLButtonElement>(".primary")?.focus();
   };
@@ -334,6 +367,8 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     document.body.style.paddingTop = bodyPadding; band = 0;
     write(GUIDE_DONE_KEY, "1");
     document.removeEventListener("keydown", onKey);
+    window.removeEventListener("pointerup", rearm);
+    resetControls(); arm(undefined);
     // Finishing loads the first job; skipping puts back whatever was selected before.
     selectPuzzle(finished ? "runs-fast" : previousJob);
     onClose();
@@ -360,6 +395,7 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     bodyPadding = document.body.style.paddingTop; band = 0;
     card.hidden = backdrop.hidden = frames.hidden = false;
     document.addEventListener("keydown", onKey);
+    window.addEventListener("pointerup", rearm);
     render();
   };
 }
@@ -420,6 +456,9 @@ export function mountOnboarding(): void {
   if (forced?.kind === "trace") { details.open = true; return; }
   if (forced?.kind === "hint") { showHint(puzzleId); return; }
 
-  if (read(GUIDE_DONE_KEY) !== "1") startGuide(0);
+  // Scripted browsers (the solve and drag scripts) load "/" and expect puzzle 1, so the guide opens
+  // for them only when the URL asks with ?guide.
+  const scripted = navigator.webdriver && !params.has("guide");
+  if (read(GUIDE_DONE_KEY) !== "1" && !scripted) startGuide(0);
   setInterval(tick, 1000);
 }

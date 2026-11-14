@@ -9,9 +9,9 @@ await server.listen();
 const browser = await chromium.launch();
 const out = [];
 const check = (name, ok, detail = "") => out.push(`${ok ? "ok  " : "FAIL"} ${name} ${detail}`);
-const url = `http://localhost:${port}/`;
-const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
-const rect = (page, sel) => page.$eval(sel, box);
+const url = `http://localhost:${port}/?guide`; // the guide stays shut for scripted browsers unless asked
+// One round trip: the drawing is replaced every frame, so an element handle can be detached by the time it is measured.
+const rect = (page, sel) => page.evaluate((q) => { const r = document.querySelector(q).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }, sel);
 const frames = (page) => page.$$eval(".guide-frame", (els) => els.map((el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }));
 const contains = (a, b) => a.l <= b.l + 1 && a.t <= b.t + 1 && a.r >= b.r - 1 && a.b >= b.b - 1;
 const overlap = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
@@ -27,13 +27,17 @@ try {
   check("free play shows every slider", await page.isVisible("#ctl-beat") && await page.isVisible("#ctl-wind") && await page.isVisible("#ctl-position"));
   check("welcome has Start and Skip", (await page.textContent("#guide .nav"))?.includes("Start") && (await page.textContent("#guide .nav"))?.includes("Skip"));
   check("welcome renders over the page: nothing pushed down", (await page.evaluate(() => document.body.style.paddingTop)) === "" && (await rect(page, ".sheet")).t < 40, JSON.stringify(await rect(page, ".sheet")));
-  const cardAtWelcome = await rect(page, "#guide");
+  const welcome = await rect(page, "#guide");
+  check("welcome card is centred on the page", Math.abs((welcome.l + welcome.r) / 2 - 640) < 2 && Math.abs((welcome.t + welcome.b) / 2 - 450) < 2, JSON.stringify(welcome));
   await page.screenshot({ path: "shots/onboarding-live-guide-welcome.png" });
 
   await next(page);
   check("step 1 is the mainspring", (await page.textContent("#guide h2"))?.includes("mainspring"));
   check("step 1 links the manual", (await page.getAttribute("#guide .manual a", "href"))?.endsWith("#power"));
   check("step 1 frame wraps the wind slider", contains((await frames(page))[0], await rect(page, "#ctl-wind")));
+  check("step 1 shows the swing arcs glowing on the drawing", (await page.$$("#movement path.swing")).length === 2 && (await frames(page)).length === 2);
+  const cardAtStep1 = await rect(page, "#guide");
+  check("step 1 card is docked right, clear of both lit parts", !(await frames(page)).some((k) => overlap(cardAtStep1, k)), JSON.stringify(cardAtStep1));
 
   await next(page);
   let f = await frames(page), card = await rect(page, "#guide");
@@ -56,9 +60,18 @@ try {
   check("step 4 is the regulator", (await page.textContent("#guide h2"))?.includes("regulator"));
   f = await frames(page); card = await rect(page, "#guide");
   check("step 4 lights the regulator slider and the balance", f.length === 2 && contains(f[0], await rect(page, "#ctl-regulator")) && contains(f[1], await rect(page, "#movement circle.balance")), JSON.stringify(f));
+  const reg = await page.evaluate(() => {
+    const b = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+    const arm = document.querySelector("#movement g.part.hot line.regulator");
+    return { glow: !!arm, arm: arm && b(arm), f: [...document.querySelectorAll(".guide-frame")].map(b) };
+  });
+  check("step 4 regulator arm glows and sits inside the lit area", reg.glow && contains(reg.f[1], reg.arm), JSON.stringify(reg));
+  const armBefore = await page.getAttribute("#movement line.regulator", "x2");
+  await page.fill("#regulator", "2"); await page.waitForTimeout(100);
+  check("dragging the lit slider moves the arm", (await page.getAttribute("#movement line.regulator", "x2")) !== armBefore);
   check("step 4 card does not cover a lit part", !f.some((k) => overlap(card, k)), JSON.stringify({ card, f }));
   check("step 4 balance is on screen", f[1].t >= 0 && f[1].b <= 900, JSON.stringify(f[1]));
-  check("card stays put between steps", Math.abs(card.t - cardAtWelcome.t) < 1 && Math.abs(card.l - cardAtWelcome.l) < 1, JSON.stringify({ cardAtWelcome, card }));
+  check("card stays put between steps", Math.abs(card.t - cardAtStep1.t) < 1 && Math.abs(card.l - cardAtStep1.l) < 1, JSON.stringify({ cardAtStep1, card }));
   check("card is on the right, off the drawing", card.l >= mov.r - 1, JSON.stringify({ card, mov }));
   check("lit slider is usable through the dim layer", await page.evaluate(() => { const r = document.querySelector("#regulator").getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.id === "regulator"; }));
   await page.screenshot({ path: "shots/onboarding-live-guide-regulator.png" });
@@ -69,6 +82,7 @@ try {
   await next(page);
   f = await frames(page); card = await rect(page, "#guide");
   check("step 5 lights the beat slider and the balance, uncovered", f.length === 2 && contains(f[0], await rect(page, "#ctl-beat")) && !f.some((k) => overlap(card, k)), JSON.stringify({ card, f }));
+  check("step 5 stud glows; the regulator was put back to neutral", (await page.$$("#movement g.part.hot circle.stud")).length === 1 && (await page.inputValue("#regulator")) === "0");
   await next(page);
   await next(page);
   f = await frames(page); card = await rect(page, "#guide");
@@ -82,6 +96,8 @@ try {
   check("guide closes after the last step", !(await page.isVisible("#guide")));
   check("finishing loads puzzle 1", (await page.inputValue("#puzzle-select")) === "runs-fast");
   check("no dim layer or frame left behind", !(await page.isVisible("#guide-backdrop")) && !(await page.isVisible(".guide-frame")));
+  await page.waitForTimeout(900);
+  check("no glow left behind", (await page.$$("#movement g.part.hot")).length === 0);
   await page.reload();
   await page.waitForSelector("#onboarding");
   check("guide stays closed after reload", !(await page.isVisible("#guide")));
