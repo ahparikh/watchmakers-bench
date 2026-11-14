@@ -44,7 +44,7 @@ interface Step {
   fix?: string;
   /** CSS selector for the part(s) to spotlight: the frame wraps the union of their boxes. Re-measured
    *  every frame, because the drawing is redrawn every frame. Hidden elements are ignored. */
-  spot?: string;
+  spot?: string | string[];
   /** Section anchor in the manual. */
   manual?: { anchor: string; label: string };
 }
@@ -89,18 +89,19 @@ const STEPS: Step[] = [
       "Nothing else in the watch sets the rate. Every timekeeping fault is about this swing.",
     ],
     fix: "<b>Timing screws</b> change the ring's mass; mass further out means slower swings.",
-    spot: "#movement circle.balance",
+    spot: ["#movement circle.balance", "#ctl-screws"],
     manual: { anchor: "balance", label: "Balance" },
   },
   {
     title: "4 · The regulator: faster or slower",
     body: [
-      "Two small pins pinch the hairspring near its outer end.",
-      "Slide them toward F and less spring is free to flex: stiffer, quicker swings, the watch gains.",
-      "Slide toward S and more spring is free: slower swings, the watch loses.",
+      "The hairspring is the fine spiral inside the balance ring. It is not drawn here.",
+      "The regulator is a small lever with two pins that grip the spring near its outer end. Only the spring between the pins and the centre does the work.",
+      "Toward <b>F</b> (fast): the working spring gets shorter and stiffer. The balance swings quicker and the watch gains time.",
+      "Toward <b>S</b> (slow): the working spring gets longer and softer. The balance swings slower and the watch loses time.",
     ],
     fix: "<b>Regulator index</b> slider · Puzzle 1, Runs fast",
-    spot: "#ctl-regulator",
+    spot: ["#ctl-regulator", "#movement circle.balance"],
     manual: { anchor: "balance", label: "Balance" },
   },
   {
@@ -111,7 +112,7 @@ const STEPS: Step[] = [
       "A watchmaker calls that beat error. It sounds like a limp.",
     ],
     fix: "<b>Beat adjustment</b> slider · Puzzle 2, Out of beat",
-    spot: "#ctl-beat",
+    spot: ["#ctl-beat", "#movement circle.balance"],
     manual: { anchor: "balance", label: "Balance" },
   },
   {
@@ -122,7 +123,7 @@ const STEPS: Step[] = [
       "If one spot on the ring is heavier, gravity drags on it every swing when the watch stands up, and the rate drifts.",
     ],
     fix: "<b>Position</b> and <b>Poising</b> · Puzzle 4, Position error",
-    spot: "#ctl-position",
+    spot: ["#ctl-poise, #ctl-poise-angle, #ctl-position", "#movement circle.balance"],
     manual: { anchor: "mainplate", label: "Mainplate" },
   },
   {
@@ -167,17 +168,16 @@ const STYLE = `
   #bench-help .hint[hidden] { display: none }
   #bench-help .hint .tag { color: var(--ruby); font-weight: 600; margin-right: 6px }
 
-  /* The guide: a click-catching backdrop, a spotlight frame whose shadow dims everything but the part
-     being talked about, and a card that stays in one place for the whole tour. */
-  #guide-backdrop { position: fixed; inset: 0; z-index: 1000 }
+  /* The guide: a dim layer with a hole cut for each part being talked about, a ruby frame round each
+     hole, and a card docked at the side so it never sits on the drawing. Nothing on the page moves. */
+  #guide-backdrop { position: fixed; inset: 0; z-index: 1000; background: rgba(28, 39, 51, 0.45) }
   #guide-backdrop[hidden] { display: none }
-  #guide-spot { position: fixed; z-index: 1001; pointer-events: none; border: 3px solid var(--ruby); border-radius: 4px;
-    box-shadow: 0 0 0 9999px rgba(28, 39, 51, 0.45); transition: left 180ms ease, top 180ms ease, width 180ms ease, height 180ms ease }
-  #guide-spot[hidden] { display: none }
-  #guide-spot.none { border-color: transparent; border-radius: 0 }
-  #guide { position: fixed; left: 50%; top: 20px; transform: translateX(-50%); z-index: 1002; width: min(600px, calc(100vw - 32px));
-    max-height: calc(100vh - 40px); overflow: auto; background: var(--sheet); color: var(--ink); border: 1.5px solid var(--ink);
+  #guide-frames[hidden] { display: none }
+  .guide-frame { position: fixed; z-index: 1001; pointer-events: none; border: 3px solid var(--ruby); border-radius: 4px }
+  #guide { position: fixed; right: 24px; top: 120px; z-index: 1002; width: min(420px, 46vw);
+    max-height: calc(100vh - 140px); overflow: auto; background: var(--sheet); color: var(--ink); border: 1.5px solid var(--ink);
     box-shadow: 0 0 0 4px var(--sheet), 0 0 0 5px var(--rule), 0 12px 32px rgba(0,0,0,0.25); padding: 16px 18px 14px; font-size: 14.5px; line-height: 1.5 }
+  #guide.left { right: auto; left: 24px }
   #guide[hidden] { display: none }
   #guide h2 { margin: 0 0 8px; font-size: 17px; font-weight: 600; line-height: 1.3; padding-bottom: 8px; border-bottom: 1px solid var(--rule) }
   #guide p { margin: 6px 0; max-width: 62ch }
@@ -190,11 +190,10 @@ const STYLE = `
   #guide .nav .primary { background: var(--ink); color: var(--sheet) }
   #guide .nav .primary:hover { background: var(--case-2) }
   #guide .nav .skip { border-color: var(--rule); color: var(--ink-2) }
-  @media (prefers-reduced-motion: reduce) { #guide-spot { transition: none } }
   @media (max-width: 760px) {
     #bench-help .explainer { grid-template-columns: 1fr }
-    #guide { padding: 14px; font-size: 14px; top: 10px; max-height: calc(100vh - 20px) }
-    #guide-spot { transition: none }
+    /* No room at the side on a phone: the card sits at the top and the page is padded below it. */
+    #guide, #guide.left { left: 16px; right: 16px; top: 10px; width: auto; padding: 14px; font-size: 14px; max-height: calc(100vh - 20px) }
   }
 `;
 
@@ -239,19 +238,21 @@ function selectPuzzle(id: string) {
 function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) => void {
   const backdrop = document.createElement("div");
   backdrop.id = "guide-backdrop"; backdrop.hidden = true;
-  const frame = document.createElement("div");
-  frame.id = "guide-spot"; frame.hidden = true;
+  const frames = document.createElement("div");
+  frames.id = "guide-frames"; frames.hidden = true;
   const card = document.createElement("section");
   card.id = "guide"; card.hidden = true;
   card.setAttribute("role", "dialog"); card.setAttribute("aria-modal", "true"); card.setAttribute("aria-labelledby", "guide-title");
   card.tabIndex = -1;
-  document.body.append(backdrop, frame, card);
+  document.body.append(backdrop, frames, card);
 
-  let step = 0, open = false, selector: string | undefined, raf = 0;
-  /** While the tour runs the page is pushed down below the card, so nothing is ever under it.
+  let step = 0, open = false, selectors: string[] = [], raf = 0;
+  const narrow = () => window.matchMedia("(max-width: 760px)").matches;
+  /** Phones only: the page is padded below the card, since there is no side to dock it on.
    *  The band only grows during a tour, so content does not shift between steps. */
   let band = 0, bodyPadding = "";
   const reserveBand = () => {
+    if (!narrow()) return;
     const need = card.getBoundingClientRect().bottom + 16;
     if (need <= band) return;
     band = need;
@@ -261,9 +262,9 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
   let previousJob = "";
 
   const PAD = 8;
-  /** Union of the visible targets' boxes, in viewport pixels. */
-  const measure = (): DOMRect | null => {
-    if (!selector) return null;
+  type Box = { l: number; t: number; r: number; b: number };
+  /** Padded union of one selector's visible elements, in viewport pixels. */
+  const measure = (selector: string): Box | null => {
     let l = Infinity, t = Infinity, r = -Infinity, b = -Infinity, n = 0;
     for (const el of Array.from(document.querySelectorAll<Element>(selector))) {
       if (el instanceof HTMLElement && el.hidden) continue;
@@ -271,26 +272,42 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
       if (k.width === 0 && k.height === 0) continue;
       l = Math.min(l, k.left); t = Math.min(t, k.top); r = Math.max(r, k.right); b = Math.max(b, k.bottom); n++;
     }
-    return n ? new DOMRect(l, t, r - l, b - t) : null;
+    return n ? { l: l - PAD, t: t - PAD, r: r + PAD, b: b + PAD } : null;
   };
+  const boxes = () => selectors.map(measure).filter((k): k is Box => k !== null);
+  /** Cut the holes and move the frames. Runs every frame: the drawing is redrawn every frame. */
   const place = () => {
-    const k = measure();
-    if (!k) {
-      frame.className = "none";
-      Object.assign(frame.style, { left: "50vw", top: "50vh", width: "0px", height: "0px" });
-    } else {
-      frame.className = "";
-      Object.assign(frame.style, { left: `${k.left - PAD}px`, top: `${k.top - PAD}px`, width: `${k.width + 2 * PAD}px`, height: `${k.height + 2 * PAD}px` });
-    }
+    const ks = boxes(), W = window.innerWidth, H = window.innerHeight;
+    backdrop.style.clipPath = `path(evenodd, "M0 0H${W}V${H}H0Z${ks.map((k) => `M${k.l} ${k.t}H${k.r}V${k.b}H${k.l}Z`).join("")}")`;
+    while (frames.children.length < ks.length) frames.appendChild(Object.assign(document.createElement("div"), { className: "guide-frame" }));
+    while (frames.children.length > ks.length) frames.lastChild!.remove();
+    ks.forEach((k, i) => Object.assign((frames.children[i] as HTMLElement).style, { left: `${k.l}px`, top: `${k.t}px`, width: `${k.r - k.l}px`, height: `${k.b - k.t}px` }));
     if (open) raf = requestAnimationFrame(place);
   };
-  const spot = (sel?: string) => {
-    selector = sel;
-    const first = sel ? document.querySelector(sel) : null;
+  const spot = (sel?: string | string[]) => {
+    selectors = sel === undefined ? [] : Array.isArray(sel) ? sel : [sel];
+    const first = selectors.length ? document.querySelector(selectors[0]) : null;
     first?.scrollIntoView({ block: "nearest", behavior: "auto" });
-    // The card never moves, so the page scrolls instead: keep the lit part below the card.
-    const k = measure(), c = card.getBoundingClientRect();
-    if (k && k.top < c.bottom + 12) window.scrollBy({ top: k.top - c.bottom - 12, behavior: "auto" });
+    // Bring every lit part on screen when they fit together (a footer slider plus the balance).
+    const all = boxes();
+    if (all.length > 1) {
+      const top = Math.min(...all.map((k) => k.t)), bottom = Math.max(...all.map((k) => k.b));
+      if (bottom - top <= window.innerHeight) {
+        if (bottom > window.innerHeight) window.scrollBy({ top: bottom - window.innerHeight, behavior: "auto" });
+        else if (top < 0) window.scrollBy({ top, behavior: "auto" });
+      }
+    }
+    if (narrow()) {
+      card.classList.remove("left");
+      const k = boxes()[0], c = card.getBoundingClientRect();
+      if (k && k.t < c.bottom + 4) window.scrollBy({ top: k.t - c.bottom - 4, behavior: "auto" });
+    } else {
+      // The card lives on the right. It crosses to the left only when a lit part is under it there.
+      card.classList.remove("left");
+      const c = card.getBoundingClientRect();
+      const under = boxes().some((k) => k.l < c.right && k.r > c.left && k.t < c.bottom && k.b > c.top);
+      card.classList.toggle("left", under);
+    }
     cancelAnimationFrame(raf); place();
   };
   const render = () => {
@@ -312,8 +329,8 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     card.querySelector<HTMLButtonElement>(".primary")?.focus();
   };
   const close = (finished: boolean) => {
-    open = false; cancelAnimationFrame(raf); selector = undefined;
-    card.hidden = backdrop.hidden = frame.hidden = true;
+    open = false; cancelAnimationFrame(raf); selectors = [];
+    card.hidden = backdrop.hidden = frames.hidden = true;
     document.body.style.paddingTop = bodyPadding; band = 0;
     write(GUIDE_DONE_KEY, "1");
     document.removeEventListener("keydown", onKey);
@@ -341,7 +358,7 @@ function mountGuide(onClose: () => void): (step?: number, freePlay?: boolean) =>
     // Free play shows every slider, so each step can spotlight the one it names.
     if (freePlay) selectPuzzle("");
     bodyPadding = document.body.style.paddingTop; band = 0;
-    card.hidden = backdrop.hidden = frame.hidden = false;
+    card.hidden = backdrop.hidden = frames.hidden = false;
     document.addEventListener("keydown", onKey);
     render();
   };

@@ -1,5 +1,5 @@
-// Onboarding checks: the first-visit guide (free play, fixed card, spotlight frame, skip, persistence, replay),
-// the hint timer, mobile layout.
+// Onboarding checks: the first-visit guide (free play, side-docked card, lit parts never covered, nothing
+// pushed down, skip, persistence, replay), the hint timer, mobile layout.
 import { chromium } from "playwright";
 import { createServer } from "vite";
 import { createServer as net } from "node:net";
@@ -10,8 +10,12 @@ const browser = await chromium.launch();
 const out = [];
 const check = (name, ok, detail = "") => out.push(`${ok ? "ok  " : "FAIL"} ${name} ${detail}`);
 const url = `http://localhost:${port}/`;
-const rect = (page, sel) => page.$eval(sel, (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
+const box = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
+const rect = (page, sel) => page.$eval(sel, box);
+const frames = (page) => page.$$eval(".guide-frame", (els) => els.map((el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }));
 const contains = (a, b) => a.l <= b.l + 1 && a.t <= b.t + 1 && a.r >= b.r - 1 && a.b >= b.b - 1;
+const overlap = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
+const next = async (page) => { await page.click('#guide [data-act="next"]'); await page.waitForTimeout(100); };
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = []; page.on("pageerror", (e) => errs.push(String(e)));
@@ -22,40 +26,62 @@ try {
   check("guide switches to free play", (await page.inputValue("#puzzle-select")) === "");
   check("free play shows every slider", await page.isVisible("#ctl-beat") && await page.isVisible("#ctl-wind") && await page.isVisible("#ctl-position"));
   check("welcome has Start and Skip", (await page.textContent("#guide .nav"))?.includes("Start") && (await page.textContent("#guide .nav"))?.includes("Skip"));
+  check("welcome renders over the page: nothing pushed down", (await page.evaluate(() => document.body.style.paddingTop)) === "" && (await rect(page, ".sheet")).t < 40, JSON.stringify(await rect(page, ".sheet")));
   const cardAtWelcome = await rect(page, "#guide");
   await page.screenshot({ path: "shots/onboarding-live-guide-welcome.png" });
-  await page.click('#guide [data-act="next"]');
+
+  await next(page);
   check("step 1 is the mainspring", (await page.textContent("#guide h2"))?.includes("mainspring"));
   check("step 1 links the manual", (await page.getAttribute("#guide .manual a", "href"))?.endsWith("#power"));
-  await page.waitForTimeout(250);
-  check("step 1 frame wraps the wind slider", contains(await rect(page, "#guide-spot"), await rect(page, "#ctl-wind")));
-  await page.click('#guide [data-act="next"]');
-  await page.waitForTimeout(250);
-  const esc = await rect(page, "#guide-spot"), mov = await rect(page, "#movement");
-  check("step 2 frame is the escapement, not the whole drawing", esc.h < mov.h * 0.8 && contains(mov, esc), JSON.stringify({ esc, mov }));
-  await page.click('#guide [data-act="next"]');
-  await page.waitForTimeout(250);
-  const bal = await rect(page, "#guide-spot"), ring = await rect(page, "#movement circle.balance");
-  check("step 3 frame wraps only the balance ring", contains(bal, ring) && bal.h < mov.h * 0.5, JSON.stringify({ bal, ring }));
-  check("step 3 ring is not under the card", ring.t >= (await rect(page, "#guide")).b, JSON.stringify({ ringTop: ring.t, cardBottom: (await rect(page, "#guide")).b }));
-  await page.screenshot({ path: "shots/onboarding-live-guide-balance.png" });
-  await page.click('#guide [data-act="next"]');
+  check("step 1 frame wraps the wind slider", contains((await frames(page))[0], await rect(page, "#ctl-wind")));
+
+  await next(page);
+  let f = await frames(page), card = await rect(page, "#guide");
+  const mov = await rect(page, "#movement");
+  check("step 2 lights the escapement, not the whole drawing", f.length === 1 && f[0].h < mov.h * 0.8 && contains(mov, f[0]), JSON.stringify(f));
+  check("step 2 card does not cover the escapement", !overlap(card, f[0]), JSON.stringify({ card, f }));
+  await page.screenshot({ path: "shots/onboarding-live-guide-escapement.png" });
+
+  await next(page);
+  // Read frames and targets in one call: the drawing is redrawn every frame.
+  const snap = await page.evaluate(() => {
+    const b = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
+    return { f: [...document.querySelectorAll(".guide-frame")].map(b), ring: b(document.querySelector("#movement circle.balance")), screws: b(document.querySelector("#ctl-screws")), card: b(document.querySelector("#guide")) };
+  });
+  f = snap.f; card = snap.card;
+  check("step 3 lights the balance ring and the timing screws", f.length === 2 && contains(f[0], snap.ring) && f[0].h < mov.h * 0.5 && contains(f[1], snap.screws), JSON.stringify(snap));
+  check("step 3 card does not cover a lit part", !f.some((k) => overlap(card, k)), JSON.stringify({ card, f }));
+
+  await next(page);
   check("step 4 is the regulator", (await page.textContent("#guide h2"))?.includes("regulator"));
-  await page.waitForTimeout(250);
-  check("step 4 frame wraps the regulator slider", contains(await rect(page, "#guide-spot"), await rect(page, "#ctl-regulator")));
-  const cardAtStep4 = await rect(page, "#guide");
-  check("card stays put between steps", Math.abs(cardAtStep4.t - cardAtWelcome.t) < 1 && Math.abs(cardAtStep4.l - cardAtWelcome.l) < 1, JSON.stringify({ cardAtWelcome, cardAtStep4 }));
-  check("card is at the top, not the bottom", cardAtStep4.t < 40);
+  f = await frames(page); card = await rect(page, "#guide");
+  check("step 4 lights the regulator slider and the balance", f.length === 2 && contains(f[0], await rect(page, "#ctl-regulator")) && contains(f[1], await rect(page, "#movement circle.balance")), JSON.stringify(f));
+  check("step 4 card does not cover a lit part", !f.some((k) => overlap(card, k)), JSON.stringify({ card, f }));
+  check("step 4 balance is on screen", f[1].t >= 0 && f[1].b <= 900, JSON.stringify(f[1]));
+  check("card stays put between steps", Math.abs(card.t - cardAtWelcome.t) < 1 && Math.abs(card.l - cardAtWelcome.l) < 1, JSON.stringify({ cardAtWelcome, card }));
+  check("card is on the right, off the drawing", card.l >= mov.r - 1, JSON.stringify({ card, mov }));
+  check("lit slider is usable through the dim layer", await page.evaluate(() => { const r = document.querySelector("#regulator").getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)?.id === "regulator"; }));
   await page.screenshot({ path: "shots/onboarding-live-guide-regulator.png" });
   await page.keyboard.press("ArrowLeft");
   check("ArrowLeft goes back", (await page.textContent("#guide h2"))?.includes("balance"));
   await page.keyboard.press("ArrowRight");
-  for (let i = 0; i < 4; i++) await page.click('#guide [data-act="next"]');
+
+  await next(page);
+  f = await frames(page); card = await rect(page, "#guide");
+  check("step 5 lights the beat slider and the balance, uncovered", f.length === 2 && contains(f[0], await rect(page, "#ctl-beat")) && !f.some((k) => overlap(card, k)), JSON.stringify({ card, f }));
+  await next(page);
+  await next(page);
+  f = await frames(page); card = await rect(page, "#guide");
+  check("step 7 lights the timegrapher and the card crosses to the left", f.length === 1 && contains(f[0], await rect(page, "#timegrapher")) && !overlap(card, f[0]) && card.l < 40, JSON.stringify({ card, f }));
+  await page.screenshot({ path: "shots/onboarding-live-guide-instrument.png" });
+  await next(page);
+  f = await frames(page); card = await rect(page, "#guide");
+  check("step 8 lights the job picker, uncovered", f.length === 1 && !overlap(card, f[0]), JSON.stringify({ card, f }));
   check("last step offers Start fixing", (await page.textContent("#guide .nav"))?.includes("Start fixing"));
   await page.click('#guide [data-act="next"]');
   check("guide closes after the last step", !(await page.isVisible("#guide")));
   check("finishing loads puzzle 1", (await page.inputValue("#puzzle-select")) === "runs-fast");
-  check("no frame left behind", !(await page.isVisible("#guide-spot")));
+  check("no dim layer or frame left behind", !(await page.isVisible("#guide-backdrop")) && !(await page.isVisible(".guide-frame")));
   await page.reload();
   await page.waitForSelector("#onboarding");
   check("guide stays closed after reload", !(await page.isVisible("#guide")));
