@@ -1,0 +1,3 @@
+"The owner says it gains about 40 seconds a day." Introducing The Watchmaker's Bench: diagnose a live, simulated movement and regulate it, reading the timegrapher the way a watchmaker does. Why a watch keeps bad time, and how you fix it: https://watchmakers-bench.pages.dev
+
+(Video music: Sascha Ende, ende.app, CC BY 4.0)
