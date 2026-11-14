@@ -52,18 +52,20 @@ export function initialPose(p: EscapementParams, balanceAngle: number): Escapeme
   return { balanceAngle, forkAngle: fork, wheelAngle: wheel, phase: blocked ? "lock" : "drop", contact: blocked ? classify(p, fork, wheel) : null, violations: 0, maxNudge: 0 };
 }
 
-/** Advance the escapement by dt seconds while the balance moves from prev.balanceAngle to balanceAngle. */
-export function step(p: EscapementParams, prev: EscapementPose, balanceAngle: number, dt: number): EscapementPose {
+/** Advance the escapement by dt seconds while the balance moves from prev.balanceAngle to balanceAngle.
+ *  `driven` is whether the gear train still delivers torque to the escape wheel: a run-down watch
+ *  has none, so its wheel moves only if a pallet stone pushes it. */
+export function step(p: EscapementParams, prev: EscapementPose, balanceAngle: number, dt: number, driven = true): EscapementPose {
   const n = Math.max(1, Math.ceil(dt / MAX_SUBSTEP));
   let pose = prev;
   for (let i = 1; i <= n; i++) {
     const bal = prev.balanceAngle + ((balanceAngle - prev.balanceAngle) * i) / n;
-    pose = substep(p, pose, bal, dt / n);
+    pose = substep(p, pose, bal, dt / n, driven);
   }
   return pose;
 }
 
-function substep(p: EscapementParams, prev: EscapementPose, bal: number, dt: number): EscapementPose {
+function substep(p: EscapementParams, prev: EscapementPose, bal: number, dt: number, driven: boolean): EscapementPose {
   const fork = forkFor(p, bal);
   let wheel = prev.wheelAngle;
   let violations = prev.violations, maxNudge = prev.maxNudge;
@@ -74,7 +76,7 @@ function substep(p: EscapementParams, prev: EscapementPose, bal: number, dt: num
     if (nudge > NUDGE_TOL) violations++;
     wheel = nudged;
   }
-  const r = advance(p, fork, wheel, p.freeRunSpeed * dt);
+  const r = driven ? advance(p, fork, wheel, p.freeRunSpeed * dt) : { wheel, blocked: worst(p, fork, wheel + 1e-3) > CONTACT_TOL };
   wheel = r.wheel;
   let phase: Phase;
   let contact: EscapementPose["contact"] = null;
