@@ -1,4 +1,4 @@
-# The Watchmaker's Bench: design rationale
+# The Watchmaker's Bench: write-up
 
 Akash Parikh · Live: https://watchmakers-bench.pages.dev · Repo: https://github.com/ahparikh/watchmakers-bench
 
