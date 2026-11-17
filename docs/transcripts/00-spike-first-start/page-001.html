@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Code transcript - page 1</title>
+    <style>
+:root { --bg-color: #f5f5f5; --card-bg: #ffffff; --user-bg: #e3f2fd; --user-border: #1976d2; --assistant-bg: #f5f5f5; --assistant-border: #9e9e9e; --thinking-bg: #fff8e1; --thinking-border: #ffc107; --thinking-text: #666; --tool-bg: #f3e5f5; --tool-border: #9c27b0; --tool-result-bg: #e8f5e9; --tool-error-bg: #ffebee; --text-color: #212121; --text-muted: #757575; --code-bg: #263238; --code-text: #aed581; }
+* { box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-color); color: var(--text-color); margin: 0; padding: 16px; line-height: 1.6; }
+.container { max-width: 800px; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin-bottom: 24px; padding-bottom: 8px; border-bottom: 2px solid var(--user-border); }
+.header-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-bottom: 2px solid var(--user-border); padding-bottom: 8px; margin-bottom: 24px; }
+.header-row h1 { border-bottom: none; padding-bottom: 0; margin-bottom: 0; flex: 1; min-width: 200px; }
+.message { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.message.user { background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.message.assistant { background: var(--card-bg); border-left: 4px solid var(--assistant-border); }
+.message.tool-reply { background: #fff8e1; border-left: 4px solid #ff9800; }
+.tool-reply .role-label { color: #e65100; }
+.tool-reply .tool-result { background: transparent; padding: 0; margin: 0; }
+.tool-reply .tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.message-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.role-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.user .role-label { color: var(--user-border); }
+time { color: var(--text-muted); font-size: 0.8rem; }
+.timestamp-link { color: inherit; text-decoration: none; }
+.timestamp-link:hover { text-decoration: underline; }
+.message:target { animation: highlight 2s ease-out; }
+@keyframes highlight { 0% { background-color: rgba(25, 118, 210, 0.2); } 100% { background-color: transparent; } }
+.message-content { padding: 16px; }
+.message-content p { margin: 0 0 12px 0; }
+.message-content p:last-child { margin-bottom: 0; }
+.thinking { background: var(--thinking-bg); border: 1px solid var(--thinking-border); border-radius: 8px; padding: 12px; margin: 12px 0; font-size: 0.9rem; color: var(--thinking-text); }
+.thinking-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #f57c00; margin-bottom: 8px; }
+.thinking p { margin: 8px 0; }
+.assistant-text { margin: 8px 0; }
+.tool-use { background: var(--tool-bg); border: 1px solid var(--tool-border); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-header { font-weight: 600; color: var(--tool-border); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.tool-icon { font-size: 1.1rem; }
+.tool-description { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px; font-style: italic; }
+.tool-result { background: var(--tool-result-bg); border-radius: 8px; padding: 12px; margin: 12px 0; }
+.tool-result.tool-error { background: var(--tool-error-bg); }
+.file-tool { border-radius: 8px; padding: 12px; margin: 12px 0; }
+.write-tool { background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%); border: 1px solid #4caf50; }
+.edit-tool { background: linear-gradient(135deg, #fff3e0 0%, #fce4ec 100%); border: 1px solid #ff9800; }
+.file-tool-header { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.write-header { color: #2e7d32; }
+.edit-header { color: #e65100; }
+.file-tool-icon { font-size: 1rem; }
+.file-tool-path { font-family: monospace; background: rgba(0,0,0,0.08); padding: 2px 8px; border-radius: 4px; }
+.file-tool-fullpath { font-family: monospace; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; word-break: break-all; }
+.file-content { margin: 0; }
+.edit-section { display: flex; margin: 4px 0; border-radius: 4px; overflow: hidden; }
+.edit-label { padding: 8px 12px; font-weight: bold; font-family: monospace; display: flex; align-items: flex-start; }
+.edit-old { background: #fce4ec; }
+.edit-old .edit-label { color: #b71c1c; background: #f8bbd9; }
+.edit-old .edit-content { color: #880e4f; }
+.edit-new { background: #e8f5e9; }
+.edit-new .edit-label { color: #1b5e20; background: #a5d6a7; }
+.edit-new .edit-content { color: #1b5e20; }
+.edit-content { margin: 0; flex: 1; background: transparent; font-size: 0.85rem; }
+.edit-replace-all { font-size: 0.75rem; font-weight: normal; color: var(--text-muted); }
+.write-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #e6f4ea); }
+.edit-tool .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff0e5); }
+.todo-list { background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border: 1px solid #81c784; border-radius: 8px; padding: 12px; margin: 12px 0; }
+.todo-header { font-weight: 600; color: #2e7d32; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+.todo-items { list-style: none; margin: 0; padding: 0; }
+.todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.06); font-size: 0.9rem; }
+.todo-item:last-child { border-bottom: none; }
+.todo-icon { flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; border-radius: 50%; }
+.todo-completed .todo-icon { color: #2e7d32; background: rgba(46, 125, 50, 0.15); }
+.todo-completed .todo-content { color: #558b2f; text-decoration: line-through; }
+.todo-in-progress .todo-icon { color: #f57c00; background: rgba(245, 124, 0, 0.15); }
+.todo-in-progress .todo-content { color: #e65100; font-weight: 500; }
+.todo-pending .todo-icon { color: #757575; background: rgba(0,0,0,0.05); }
+.todo-pending .todo-content { color: #616161; }
+pre { background: var(--code-bg); color: var(--code-text); padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; line-height: 1.5; margin: 8px 0; white-space: pre-wrap; word-wrap: break-word; }
+pre.json { color: #e0e0e0; }
+code { background: rgba(0,0,0,0.08); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+pre code { background: none; padding: 0; }
+.user-content { margin: 0; }
+.truncatable { position: relative; }
+.truncatable.truncated .truncatable-content { max-height: 200px; overflow: hidden; }
+.truncatable.truncated::after { content: ''; position: absolute; bottom: 32px; left: 0; right: 0; height: 60px; background: linear-gradient(to bottom, transparent, var(--card-bg)); pointer-events: none; }
+.message.user .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--user-bg)); }
+.message.tool-reply .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, #fff8e1); }
+.tool-use .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-bg)); }
+.tool-result .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--tool-result-bg)); }
+.expand-btn { display: none; width: 100%; padding: 8px 16px; margin-top: 4px; background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; cursor: pointer; font-size: 0.85rem; color: var(--text-muted); }
+.expand-btn:hover { background: rgba(0,0,0,0.1); }
+.truncatable.truncated .expand-btn, .truncatable.expanded .expand-btn { display: block; }
+.pagination { display: flex; justify-content: center; gap: 8px; margin: 24px 0; flex-wrap: wrap; }
+.pagination a, .pagination span { padding: 5px 10px; border-radius: 6px; text-decoration: none; font-size: 0.85rem; }
+.pagination a { background: var(--card-bg); color: var(--user-border); border: 1px solid var(--user-border); }
+.pagination a:hover { background: var(--user-bg); }
+.pagination .current { background: var(--user-border); color: white; }
+.pagination .disabled { color: var(--text-muted); border: 1px solid #ddd; }
+.pagination .index-link { background: var(--user-border); color: white; }
+details.continuation { margin-bottom: 16px; }
+details.continuation summary { cursor: pointer; padding: 12px 16px; background: var(--user-bg); border-left: 4px solid var(--user-border); border-radius: 12px; font-weight: 500; color: var(--text-muted); }
+details.continuation summary:hover { background: rgba(25, 118, 210, 0.15); }
+details.continuation[open] summary { border-radius: 12px 12px 0 0; margin-bottom: 0; }
+.index-item { margin-bottom: 16px; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); background: var(--user-bg); border-left: 4px solid var(--user-border); }
+.index-item a { display: block; text-decoration: none; color: inherit; }
+.index-item a:hover { background: rgba(25, 118, 210, 0.1); }
+.index-item-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(0,0,0,0.03); font-size: 0.85rem; }
+.index-item-number { font-weight: 600; color: var(--user-border); }
+.index-item-content { padding: 16px; }
+.index-item-stats { padding: 8px 16px 12px 32px; font-size: 0.85rem; color: var(--text-muted); border-top: 1px solid rgba(0,0,0,0.06); }
+.index-item-commit { margin-top: 6px; padding: 4px 8px; background: #fff3e0; border-radius: 4px; font-size: 0.85rem; color: #e65100; }
+.index-item-commit code { background: rgba(0,0,0,0.08); padding: 1px 4px; border-radius: 3px; font-size: 0.8rem; margin-right: 6px; }
+.commit-card { margin: 8px 0; padding: 10px 14px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 6px; }
+.commit-card a { text-decoration: none; color: #5d4037; display: block; }
+.commit-card a:hover { color: #e65100; }
+.commit-card-hash { font-family: monospace; color: #e65100; font-weight: 600; margin-right: 8px; }
+.index-commit { margin-bottom: 12px; padding: 10px 16px; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.index-commit a { display: block; text-decoration: none; color: inherit; }
+.index-commit a:hover { background: rgba(255, 152, 0, 0.1); margin: -10px -16px; padding: 10px 16px; border-radius: 8px; }
+.index-commit-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-bottom: 4px; }
+.index-commit-hash { font-family: monospace; color: #e65100; font-weight: 600; }
+.index-commit-msg { color: #5d4037; }
+.index-item-long-text { margin-top: 8px; padding: 12px; background: var(--card-bg); border-radius: 8px; border-left: 3px solid var(--assistant-border); }
+.index-item-long-text .truncatable.truncated::after { background: linear-gradient(to bottom, transparent, var(--card-bg)); }
+.index-item-long-text-content { color: var(--text-color); }
+#search-box { display: none; align-items: center; gap: 8px; }
+#search-box input { padding: 6px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; width: 180px; }
+#search-box button, #modal-search-btn, #modal-close-btn { background: var(--user-border); color: white; border: none; border-radius: 6px; padding: 6px 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#search-box button:hover, #modal-search-btn:hover { background: #1565c0; }
+#modal-close-btn { background: var(--text-muted); margin-left: 8px; }
+#modal-close-btn:hover { background: #616161; }
+#search-modal[open] { border: none; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); padding: 0; width: 90vw; max-width: 900px; height: 80vh; max-height: 80vh; display: flex; flex-direction: column; }
+#search-modal::backdrop { background: rgba(0,0,0,0.5); }
+.search-modal-header { display: flex; align-items: center; gap: 8px; padding: 16px; border-bottom: 1px solid var(--assistant-border); background: var(--bg-color); border-radius: 12px 12px 0 0; }
+.search-modal-header input { flex: 1; padding: 8px 12px; border: 1px solid var(--assistant-border); border-radius: 6px; font-size: 16px; }
+#search-status { padding: 8px 16px; font-size: 0.85rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+#search-results { flex: 1; overflow-y: auto; padding: 16px; }
+.search-result { margin-bottom: 16px; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.search-result a { display: block; text-decoration: none; color: inherit; }
+.search-result a:hover { background: rgba(25, 118, 210, 0.05); }
+.search-result-page { padding: 6px 12px; background: rgba(0,0,0,0.03); font-size: 0.8rem; color: var(--text-muted); border-bottom: 1px solid rgba(0,0,0,0.06); }
+.search-result-content { padding: 12px; }
+.search-result mark { background: #fff59d; padding: 1px 2px; border-radius: 2px; }
+@media (max-width: 600px) { body { padding: 8px; } .message, .index-item { border-radius: 8px; } .message-content, .index-item-content { padding: 12px; } pre { font-size: 0.8rem; padding: 8px; } #search-box input { width: 120px; } #search-modal[open] { width: 95vw; height: 90vh; } }
+</style>
+</head>
+<body>
+    <div class="container">
+        <h1><a href="index.html" style="color: inherit; text-decoration: none;">Claude Code transcript</a> - page 1/2</h1>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<span class="disabled">&larr; Prev</span>
+<span class="current">1</span>
+<a href="page-002.html">2</a>
+<a href="page-002.html">Next &rarr;</a>
+</div>
+
+        
+<div class="message user" id="msg-2026-11-02T03-20-37-340Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-11-02T03-20-37-340Z" class="timestamp-link"><time datetime="2026-11-02T03:20:37.340Z" data-timestamp="2026-11-02T03:20:37.340Z">2026-11-02T03:20:37.340Z</time></a></div><div class="message-content">
+<div class="user-content"><p><local-command-caveat>The command below was run directly in Claude Code, not sent to you as a request, and its output goes straight to the user. It's recorded here as context for later messages.</local-command-caveat></p></div></div></div>
+<div class="message user" id="msg-2026-11-02T03-20-37-339Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-11-02T03-20-37-339Z" class="timestamp-link"><time datetime="2026-11-02T03:20:37.339Z" data-timestamp="2026-11-02T03:20:37.339Z">2026-11-02T03:20:37.339Z</time></a></div><div class="message-content">
+<div class="user-content"><p><command-name>/model</command-name>
+            <command-message>model</command-message>
+            <command-args></command-args></p></div></div></div>
+<div class="message user" id="msg-2026-11-02T03-20-37-339Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-11-02T03-20-37-339Z" class="timestamp-link"><time datetime="2026-11-02T03:20:37.339Z" data-timestamp="2026-11-02T03:20:37.339Z">2026-11-02T03:20:37.339Z</time></a></div><div class="message-content">
+<div class="user-content"><p><local-command-stdout>Set model to <code>Fable 5.1</code> and saved as your default for new sessions with <code>medium</code> effort</local-command-stdout></p></div></div></div>
+<div class="message user" id="msg-2026-11-02T03-24-54-313Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-11-02T03-24-54-313Z" class="timestamp-link"><time datetime="2026-11-02T03:24:54.313Z" data-timestamp="2026-11-02T03:24:54.313Z">2026-11-02T03:24:54.313Z</time></a></div><div class="message-content">
+<div class="user-content"><p>Please read @watchmaker_brief.md which details a spec for a website app that I am exploring building. Please setup a CLAUDE.md that provides all future agents with details of what we are exploring. After that is done, this agent will focus on doing a spike to validate that this idea is possible and explore any concerns with this idea (including running our grill skill to push any details on the specs and outcomes).</p></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-00-250Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-00-250Z" class="timestamp-link"><time datetime="2026-11-02T03:25:00.250Z" data-timestamp="2026-11-02T03:25:00.250Z">2026-11-02T03:25:00.250Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-00-256Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-00-256Z" class="timestamp-link"><time datetime="2026-11-02T03:25:00.256Z" data-timestamp="2026-11-02T03:25:00.256Z">2026-11-02T03:25:00.256Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>I'll start by looking at the project directory, then write the CLAUDE.md, then move to the grill and the spike.</p></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-01-681Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-01-681Z" class="timestamp-link"><time datetime="2026-11-02T03:25:01.681Z" data-timestamp="2026-11-02T03:25:01.681Z">2026-11-02T03:25:01.681Z</time></a></div><div class="message-content">
+<div class="tool-use bash-tool" data-tool-id="toolu_0119GFwm335CVeHCrdAAfPxG">
+<div class="tool-header"><span class="tool-icon">$</span> Bash</div>
+<div class="tool-description">Inspect project directory and toolchain</div><div class="truncatable"><div class="truncatable-content"><pre class="bash-command">ls -la &amp;&amp; git status --short . | head &amp;&amp; cat .gitignore 2&gt;/dev/null; ls ../ ; node --version; npm --version</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-11-02T03-25-02-981Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-11-02T03-25-02-981Z" class="timestamp-link"><time datetime="2026-11-02T03:25:02.981Z" data-timestamp="2026-11-02T03:25:02.981Z">2026-11-02T03:25:02.981Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>total 24
+drwxr-xr-x@ 3 ahp  staff     96 Nov  1 14:27 .
+drwxr-xr-x  5 ahp  staff    160 Oct 25 14:07 ..
+-rw-r--r--@ 1 ahp  staff  10875 Nov  1 14:24 watchmaker_brief.md
+?? ./
+anthropic
+shahparikh
+ticketshare
+v26.13.0
+11.20.0</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-06-703Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-06-703Z" class="timestamp-link"><time datetime="2026-11-02T03:25:06.703Z" data-timestamp="2026-11-02T03:25:06.703Z">2026-11-02T03:25:06.703Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-06-752Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-06-752Z" class="timestamp-link"><time datetime="2026-11-02T03:25:06.752Z" data-timestamp="2026-11-02T03:25:06.752Z">2026-11-02T03:25:06.752Z</time></a></div><div class="message-content">
+<div class="tool-use" data-tool-id="toolu_01Jd9UyudXHrT5Zh37xrTEZF"><div class="tool-header"><span class="tool-icon">⚙</span> Skill</div><div class="truncatable"><div class="truncatable-content"><pre class="json">{
+  &#34;skill&#34;: &#34;mattpocock-skills:writing-for-agents&#34;
+}</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message tool-reply" id="msg-2026-11-02T03-25-06-777Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-11-02T03-25-06-777Z" class="timestamp-link"><time datetime="2026-11-02T03:25:06.777Z" data-timestamp="2026-11-02T03:25:06.777Z">2026-11-02T03:25:06.777Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>Launching skill: mattpocock-skills:writing-for-agents</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message user" id="msg-2026-11-02T03-25-06-775Z"><div class="message-header"><span class="role-label">User</span><a href="#msg-2026-11-02T03-25-06-775Z" class="timestamp-link"><time datetime="2026-11-02T03:25:06.775Z" data-timestamp="2026-11-02T03:25:06.775Z">2026-11-02T03:25:06.775Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>Base directory for this skill: /Users/ahp/.claude/plugins/cache/claude-plugins-official/mattpocock-skills/1.3.1/skills/productivity/writing-for-agents</p>
+<p>Reference for writing any document an agent consumes: a skill, an <code>AGENTS.md</code> / <code>CLAUDE.md</code>, a doc reached by a pointer. The packaging differs; the writing does not: the same levers make each one predictable, since the agent takes the same <em>process</em> every run rather than producing the same output.</p>
+<p>When the document you're writing is a skill, read <a href="SKILL-MECHANICS.md"><code>SKILL-MECHANICS.md</code></a> for frontmatter, invocation choice, and router skills.</p>
+<h2>Context pointers</h2>
+<p>A <strong>context pointer</strong> is a reference held in the agent's context that names some out-of-context material and encodes the condition for reaching it. A skill's description is one; a line in <code>AGENTS.md</code> naming a doc is the same object. The pointer's <em>wording</em>, not its target, decides when the agent reaches the material, and how reliably. A must-have target behind a weakly worded pointer is a variance bug: sharpen the wording first, and inline the material only if sharpening fails.</p>
+<p>A pointer does two jobs: state what the material is, and list the <strong>branches</strong> that should trigger reaching it (a branch is a distinct case the document handles, so different runs take different paths through it). Every word of an always-loaded pointer costs on every turn, so it earns even harder pruning than the body:</p>
+<ul>
+<li><strong>Front-load the leading word</strong>: the pointer is where it does its triggering work.</li>
+<li><strong>One trigger per branch.</strong> Synonyms that rename a single branch are one branch written twice; collapse them and keep only genuinely distinct branches.</li>
+<li><strong>Cut identity the body already carries.</strong></li>
+</ul>
+<h2>The two loads</h2>
+<p>Every document and pointer you add spends one of two budgets:</p>
+<ul>
+<li><strong>Context load</strong> is the cost of always-loaded material on the agent's window: an <code>AGENTS.md</code> line, a skill description, anything sitting in context every turn, spending tokens and attention whether or not it fires.</li>
+<li><strong>Cognitive load</strong> is the cost on the human: which documents exist and when to reach for each. The human is the index. Not a cost to minimise: it is the price of human agency; spend it where human judgement matters, remove it where it does not.</li>
+</ul>
+<p>Material reached only through a pointer escapes context load at the price of the pointer's own line; material with no pointer at all rides entirely on cognitive load.</p>
+<h2>Information hierarchy</h2>
+<p>A document is built from two content types: <strong>steps</strong> (the ordered actions the agent performs) and <strong>reference</strong> (definitions, rules, facts consulted on demand). The two mix freely: all steps (a recipe), all reference (a review's rules, this skill), or both. The core decision is where each piece sits on the <strong>information hierarchy</strong>, a ladder ranked by how immediately the agent needs the material:</p>
+<ol>
+<li><strong>In-file step</strong> is the primary tier: what the agent does, in order.</li>
+<li><strong>In-file reference</strong> is consulted on demand. Often a legitimately flat peer-set (every rule of a review on one rung), which is a fine arrangement, not a smell.</li>
+<li><strong>Disclosed reference</strong> is pushed out into a separate file, reached by a context pointer, loaded only when the pointer fires. Spans a sibling file in the same folder through fully external reference that lives anywhere and any document can point at.</li>
+</ol>
+<p>Push too little down and the top bloats; push too much and you hide material the agent actually needs. That tension is the whole decision.</p>
+<p><strong>Progressive disclosure</strong> is the move down the ladder (out of the main file and behind a pointer) so the top stays legible. Not primarily a token optimisation: it is how the hierarchy is protected. Branching is the cleanest disclosure test: inline what every branch needs, and push behind a pointer what only some branches reach. When a document has steps, in-file reference that should be disclosed buries them and turns attending to them into a coin-flip: a variance lever, not just a legibility one.</p>
+<p><strong>Co-location</strong> is the within-file companion: where the ladder decides <em>how far down</em> a piece sits, co-location decides <em>what sits beside it</em> once there. Keep a concept's definition, rules, and caveats under one heading rather than scattered, so reading one part brings its neighbours with it. The test: the document should read like documentation written for the agent. Grouped material reads that way; scattered material does not. (Distinct from duplication: that repeats one meaning in two places; scattering fragments one meaning across many.)</p>
+<p><strong>Sprawl</strong> is the failure mode here: a document simply too long, even when every line is live and unique. Attention thins across the excess, and every extra line is one more to keep relevant. The cure is the ladder: disclose reference behind pointers, and split by branch or sequence so each path carries only what it needs.</p>
+<h2>Steps and completion criteria</h2>
+<p>Every step ends on a <strong>completion criterion</strong>, the condition that tells the agent the work is done. Two properties make it a lever:</p>
+<ul>
+<li><strong>Clarity</strong>: can the agent tell done from not-done? A vague bound ("understanding reached") invites <strong>premature completion</strong>: ending the step before it is genuinely done, attention slipping to <em>being done</em>. The visible steps still ahead (the <strong>post-completion steps</strong>) supply the pull; the criterion's clarity is the resistance. Defend in order: <strong>sharpen the bound first</strong> (local and cheap); only if it is irreducibly fuzzy <em>and</em> you observe the rush, hide the later steps by splitting the sequence. Hiding only works across a real context boundary (a hand-off or a subagent dispatch; an inline call leaves the later steps in context and clears nothing).</li>
+<li><strong>Demand</strong>: how much it requires. "Every modified model accounted for" forces thorough work where "produce a change list" does not. Demand drives <strong>legwork</strong> (the digging the agent does within the work, latent in the wording rather than written as its own step), and it is not step-bound: "every rule applied" binds a body of flat reference just as "every step done" binds a sequence, which is how an all-reference document still carries an exhaustiveness bar.</li>
+</ul>
+<p>The strongest criteria are both checkable and exhaustive.</p>
+<h2>When to split</h2>
+<p>Splitting one document into two spends one of the two loads, so split only when the cut earns it:</p>
+<ul>
+<li><strong>By sequence</strong>: split a run of steps where the post-completion steps tempt the agent to rush the one in front of it. Keeping them out of view drives more legwork on the current task. Beware the reverse: merging sequences exposes each step's later steps to what follows, inviting premature completion.</li>
+<li><strong>By invocation</strong>, skill-specific: see <a href="SKILL-MECHANICS.md"><code>SKILL-MECHANICS.md</code></a>.</li>
+</ul>
+<h2>Leading words</h2>
+<p>A <strong>leading word</strong> is a compact concept already living in the model's pretraining that the agent thinks with while running the document (<em>lesson</em>, <em>fog of war</em>, <em>tracer bullets</em>). Repeated as a token, never as a sentence, it accumulates a distributed definition and anchors a whole region of behaviour in the fewest tokens, by recruiting priors the model already holds. Coining your own works if you define it clearly, but a made-up word recruits no priors: you pay in definition tokens what a pretrained word gives free; reach for an existing word first.</p>
+<p>It anchors twice. In the body, <em>execution</em>: the agent reaches for the same behaviour every time the word appears, and inside flat reference it focuses attention on a class of thing to look for. In a pointer, <em>invocation</em>: when the same word lives in your prompts, your docs, and your codebase, the agent links that shared language to the material and reaches it more reliably.</p>
+<p>Hunt for opportunities to refactor with leading words. A triad spelled out at three sites, a pointer spending a sentence to gesture at one idea. Each is a passage begging to collapse into a single token:</p>
+<ul>
+<li>"fast, deterministic, low-overhead" → <em>tight</em> (a <em>tight</em> loop).</li>
+<li>"a loop you believe in" → <em>red</em>, turning a fuzzy gate into a binary observable state (the loop goes <em>red</em> on the bug, or it doesn't).</li>
+</ul>
+<p>You win twice: fewer tokens, and a sharper hook for the agent to hang its thinking on. Assume every document is carrying restatements that leading words retire. Go find them.</p>
+<p><strong>Negation</strong> is the failure mode beside this lever: steering by prohibition drags the forbidden behaviour into context and makes it <em>more</em> available, not less. <em>Don't think of an elephant</em>, and the elephant is all there is; the negation is a weak modifier the strongly-activated concept overruns, so the ban half-reads as an instruction to do the thing. Prompt the <strong>positive</strong>: state the target behaviour ("write one-line comments") so the banned one is never spoken. A prohibition earns its place only as a hard guardrail you cannot phrase positively; even then, pair it with the positive target so attention lands on what to do.</p>
+<h2>Pruning</h2>
+<ul>
+<li>Keep each meaning in a <strong>single source of truth</strong>: one authoritative place, so changing the behaviour is a one-place edit. <strong>Duplication</strong> (the same meaning in more than one place) costs maintenance and tokens, and inflates a meaning's prominence on the ladder past its real rank. (The accidental inverse of a leading word, which repeats a token on purpose, never the meaning.)</li>
+<li>The <strong>environment</strong> is a source of truth too (<code>package.json</code> scripts, config files, the directory layout, <code>--help</code> output), and a document that restates it is a <strong>cache</strong>: a copy of a lookup, earning its load only when the lookup is expensive. Cache what the agent cannot find by looking: the unwritten convention, the reason behind a choice, the gotcha no config confesses. Leave the one-file, one-command lookups to the environment, where they cannot go stale.</li>
+<li>Check every line for <strong>relevance</strong>: does it still bear on what the document does? A line loses relevance by never bearing on the task (mere exposition, or a branch that should be disclosed) or by going stale as the behaviour or world it describes changes. Shorter documents are easier to keep relevant. Without a pruning discipline the default fate is <strong>sediment</strong>: stale layers that settle because adding feels safe and removing feels risky, until you must core down through them to find what is still live.</li>
+<li>Hunt <strong>no-ops</strong> sentence by sentence: an instruction the model already obeys by default pays load to say nothing. The test (does it change behaviour versus the default?) is model-relative, not reader-relative: two people disagreeing about a no-op disagree about the default, and settle it by running the document, not by debate. When a sentence fails, delete the whole sentence rather than trim words from it. The test also grades leading words: a word too weak to beat the default (<em>be thorough</em> when the agent is already thorough-ish) is a no-op, and the fix is a stronger word (<em>relentless</em>), not a different technique.</li>
+</ul></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-13-906Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-13-906Z" class="timestamp-link"><time datetime="2026-11-02T03:25:13.906Z" data-timestamp="2026-11-02T03:25:13.906Z">2026-11-02T03:25:13.906Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-31-841Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-31-841Z" class="timestamp-link"><time datetime="2026-11-02T03:25:31.841Z" data-timestamp="2026-11-02T03:25:31.841Z">2026-11-02T03:25:31.841Z</time></a></div><div class="message-content"><div class="file-tool write-tool" data-tool-id="toolu_01REpGKSQh27B31F2VxJmSvx">
+<div class="file-tool-header write-header"><span class="file-tool-icon">📝</span> Write <span class="file-tool-path">CLAUDE.md</span></div>
+<div class="file-tool-fullpath">/Users/ahp/.personal/code/websites/anthropic/CLAUDE.md</div>
+<div class="truncatable"><div class="truncatable-content"><pre class="file-content"># The Watchmaker&#39;s Bench
+
+An exploration, not yet a committed build. The idea: a browser app where anyone learns why a mechanical watch runs fast or slow by diagnosing and regulating a live, simulated movement, read through a timegrapher (rate in s/day, amplitude in degrees, beat error in ms). Diagnosis puzzles (&#34;runs fast: find and fix it&#34;) carry the teaching. Ciechanowski&#39;s *Mechanical Watch* already explains *how* a watch works; this is about *why it keeps bad time and how you fix it*.
+
+`watchmaker_brief.md` is the source of truth for concept, scope, puzzles, controls, architecture and the go / no-go rubric. Read it before any design or build work. This file only carries what the brief does not say or what has changed since.
+
+## Status
+
+- **Phase:** escapement spike. No app code exists until the spike reaches a decision.
+- **Decision gate:** the brief&#39;s go / fallback / pivot table. Record the outcome and the correction-round count in `SPIKE.md` when decided.
+- **Hard limit:** 8 hours total build time, tracked by Akash outside this repo. Treat every stretch item as optional.
+
+## Rules that outrank convenience
+
+- **Simulation and rendering never mix.** The sim core is pure functions over state and parameters, tested with Vitest. Renderers read state and compute nothing. A renderer may be deleted without touching a test.
+- **Geometry is derived, never drawn.** Every shape comes from named parameters in one config object (tooth count, lift angle, lock angle, drop). Hand-tuned path strings are a bug.
+- **Horology is verified before it becomes code.** None of the physics numbers in the brief are checked yet. Run `/research` against primary sources and record findings in `docs/research/` before encoding a claim. When you are unsure whether a horological statement is true, say so in the transcript rather than asserting it.
+- **Tests hold the line.** A failing invariant test is fixed in the sim, never loosened. Skipped tests count as failures at the gate.
+- **Core before stretch.** Core (one calibre, escapement + balance, torque curve, timegrapher, puzzle 1) is deployed before any stretch item starts. Each stretch item lives on its own branch.
+- **Spike code stays in `spike/`.** It is throwaway. Promote ideas, not files, into the main app.
+
+## Stack (planned)
+
+Vite + TypeScript, plain SVG, Vitest for the sim core, Playwright for render screenshots and numeric geometry assertions, static deploy (Vercel or Cloudflare Pages). No backend, no runtime LLM, no keys. Node 22 is installed.
+
+## Workflow
+
+The transcripts are part of the deliverable. They should show the human steering: `/grill-with-docs` to align on design, `/research` before physics, `/tdd` for the sim, a custom `verify-render` skill for screenshots plus geometry assertions, `/code-review` before deploy. Keep visible in the transcript any moment where Claude asserted wrong horology, a test was weakened, or a render ran but looked wrong, and the correction that followed.
+
+## Vocabulary
+
+Horology terms used in code and docs go in `GLOSSARY.md` the first time they appear (escapement, pallet, lock, drop, impulse, lift angle, beat error, amplitude, isochronism, poise, regulator index, stud). Use the glossary term, not a synonym, in identifiers.
+</pre></div><button class="expand-btn">Show more</button></div>
+</div></div></div>
+<div class="message tool-reply" id="msg-2026-11-02T03-25-31-903Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-11-02T03-25-31-903Z" class="timestamp-link"><time datetime="2026-11-02T03:25:31.903Z" data-timestamp="2026-11-02T03:25:31.903Z">2026-11-02T03:25:31.903Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>File created successfully at: /Users/ahp/.personal/code/websites/anthropic/CLAUDE.md (file state is current in your context — no need to Read it back)</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-38-930Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-38-930Z" class="timestamp-link"><time datetime="2026-11-02T03:25:38.930Z" data-timestamp="2026-11-02T03:25:38.930Z">2026-11-02T03:25:38.930Z</time></a></div><div class="message-content">
+<div class="thinking"><div class="thinking-label">Thinking</div></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-38-934Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-38-934Z" class="timestamp-link"><time datetime="2026-11-02T03:25:38.934Z" data-timestamp="2026-11-02T03:25:38.934Z">2026-11-02T03:25:38.934Z</time></a></div><div class="message-content">
+<div class="assistant-text"><p>CLAUDE.md is in place. Next, the grill: loading the skill to stress-test the spec before the spike.</p></div></div></div>
+<div class="message assistant" id="msg-2026-11-02T03-25-39-237Z"><div class="message-header"><span class="role-label">Assistant</span><a href="#msg-2026-11-02T03-25-39-237Z" class="timestamp-link"><time datetime="2026-11-02T03:25:39.237Z" data-timestamp="2026-11-02T03:25:39.237Z">2026-11-02T03:25:39.237Z</time></a></div><div class="message-content">
+<div class="tool-use" data-tool-id="toolu_01KhEfToPpaG5MfwzLnZXikE"><div class="tool-header"><span class="tool-icon">⚙</span> Skill</div><div class="truncatable"><div class="truncatable-content"><pre class="json">{
+  &#34;skill&#34;: &#34;mattpocock-skills:grilling&#34;,
+  &#34;args&#34;: &#34;watchmaker_brief.md: the Watchmaker&#39;s Bench spec, the escapement spike plan, and the go/no-go outcomes&#34;
+}</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+<div class="message tool-reply" id="msg-2026-11-02T03-25-39-266Z"><div class="message-header"><span class="role-label">Tool reply</span><a href="#msg-2026-11-02T03-25-39-266Z" class="timestamp-link"><time datetime="2026-11-02T03:25:39.266Z" data-timestamp="2026-11-02T03:25:39.266Z">2026-11-02T03:25:39.266Z</time></a></div><div class="message-content"><div class="tool-result"><div class="truncatable"><div class="truncatable-content"><pre>Launching skill: mattpocock-skills:grilling</pre></div><button class="expand-btn">Show more</button></div></div></div></div>
+        
+
+<div class="pagination">
+<a href="index.html" class="index-link">Index</a>
+<span class="disabled">&larr; Prev</span>
+<span class="current">1</span>
+<a href="page-002.html">2</a>
+<a href="page-002.html">Next &rarr;</a>
+</div>
+
+    </div>
+    <script>
+document.querySelectorAll('time[data-timestamp]').forEach(function(el) {
+    const timestamp = el.getAttribute('data-timestamp');
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const timeStr = date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    if (isToday) { el.textContent = timeStr; }
+    else { el.textContent = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + timeStr; }
+});
+document.querySelectorAll('pre.json').forEach(function(el) {
+    let text = el.textContent;
+    text = text.replace(/"([^"]+)":/g, '<span style="color: #ce93d8">"$1"</span>:');
+    text = text.replace(/: "([^"]*)"/g, ': <span style="color: #81d4fa">"$1"</span>');
+    text = text.replace(/: (\d+)/g, ': <span style="color: #ffcc80">$1</span>');
+    text = text.replace(/: (true|false|null)/g, ': <span style="color: #f48fb1">$1</span>');
+    el.innerHTML = text;
+});
+document.querySelectorAll('.truncatable').forEach(function(wrapper) {
+    const content = wrapper.querySelector('.truncatable-content');
+    const btn = wrapper.querySelector('.expand-btn');
+    if (content.scrollHeight > 250) {
+        wrapper.classList.add('truncated');
+        btn.addEventListener('click', function() {
+            if (wrapper.classList.contains('truncated')) { wrapper.classList.remove('truncated'); wrapper.classList.add('expanded'); btn.textContent = 'Show less'; }
+            else { wrapper.classList.remove('expanded'); wrapper.classList.add('truncated'); btn.textContent = 'Show more'; }
+        });
+    }
+});
+</script>
+</body>
+</html>
