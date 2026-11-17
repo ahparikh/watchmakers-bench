@@ -12,7 +12,9 @@ export interface Reading {
   rateSecondsPerDay: number;
   beatErrorMs: number;
   amplitudeDeg: number;
-  /** One point per tick: beat index and the tick's offset from the nominal grid, ms. */
+  /** One point per tick: beat index and the tick's offset from the nominal grid, ms. Both are
+   *  counted from the first parity-0 tick in the window, so the picture does not change when the
+   *  window slides by one tick (a leading parity-1 tick has beat −1). */
   trace: { beat: number; offsetMs: number; parity: 0 | 1 }[];
   beats: number;
 }
@@ -37,6 +39,7 @@ export function analyze(ticks: Tick[], nominalPeriod: number, liftAngleDeg: numb
   const dt = ticks.reduce((a, k) => a + k.liftDuration, 0) / n;
   const amplitudeDeg = liftAngleDeg / 2 / Math.sin((Math.PI * dt) / measuredPeriod);
 
-  const trace = ticks.map((k, i) => ({ beat: i, offsetMs: (k.t - ticks[0].t - i * beat) * 1000, parity: k.parity }));
+  const anchor = ticks[0].parity === 0 ? 0 : 1;
+  const trace = ticks.map((k, i) => ({ beat: i - anchor, offsetMs: (k.t - ticks[anchor].t - (i - anchor) * beat) * 1000, parity: k.parity }));
   return { rateSecondsPerDay, beatErrorMs, amplitudeDeg, trace, beats: n };
 }

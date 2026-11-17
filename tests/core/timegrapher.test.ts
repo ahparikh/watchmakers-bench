@@ -59,4 +59,19 @@ describe("timegrapher reading (docs/research/02-beat-rates-and-timegrapher.md)",
     const sep = Math.abs(odd[10].offsetMs - (even[10].offsetMs + even[11].offsetMs) / 2);
     expect(sep).toBeCloseTo(r.beatErrorMs, 6);
   });
+
+  it("draws the same picture when the window slides by one tick (no jumping lines)", () => {
+    const all = tickTimes({ period: T / (1 + 40 / 86400), amplitude: 270, beatOffset: 6, liftAngle: 52 }, 0, 320);
+    const picture = (from: number) => {
+      const r = analyze(all.slice(from, from + 300), T, 52)!;
+      // Offsets by beat, for the beats every window shares.
+      return new Map(r.trace.filter((p) => p.beat >= 0 && p.beat < 290).map((p) => [`${p.beat}/${p.parity}`, p.offsetMs]));
+    };
+    const first = picture(0);
+    for (const from of [1, 2, 3, 7]) {
+      const slid = picture(from);
+      expect(slid.size).toBe(first.size);
+      for (const [key, offset] of first) expect(slid.get(key)).toBeCloseTo(offset, 6);
+    }
+  });
 });

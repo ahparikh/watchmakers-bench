@@ -30,6 +30,9 @@ export const CONTACT_TOL = 1e-6;
 const NUDGE_TOL = 1e-3;
 /** Largest internal step, seconds. Keeps the contact search well below a tooth width. */
 const MAX_SUBSTEP = 1e-4;
+/** Wheel rotation (degrees) used to ask "is the wheel already against a face?". Far below
+ *  CONTACT_TOL in scene units, so a wheel held back by this much is indistinguishable from contact. */
+const REST_PROBE = 1e-9;
 
 /** Fork angle the impulse pin imposes at a given balance angle; the fork parks at a banking
  *  whenever the pin is out of the notch (zero draw: nothing else moves it). */
@@ -139,6 +142,9 @@ function clear(p: EscapementParams, fork: number, wheel: number) {
 
 /** Move the wheel forward by up to `maxStep` degrees, stopping at first contact. */
 function advance(p: EscapementParams, fork: number, wheel: number, maxStep: number) {
+  // Already resting on a face (the usual case: the wheel is locked for most of every beat):
+  // nothing to search for. Without this the bisection below ran on every substep of every frame.
+  if (worst(p, fork, wheel + REST_PROBE) > CONTACT_TOL) return { wheel, blocked: true };
   const target = wheel + maxStep;
   if (worst(p, fork, target) <= CONTACT_TOL) return { wheel: target, blocked: false };
   let lo = wheel, hi = target;

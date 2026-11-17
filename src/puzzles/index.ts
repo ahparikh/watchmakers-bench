@@ -1,5 +1,5 @@
 /** Diagnosis puzzles: a bundled faulty watch, a symptom, a hidden cause, a completion rule. */
-import type { WatchSettings, WatchSpec, WatchReading } from "../core/watch";
+import type { Position, WatchSettings, WatchSpec, WatchReading } from "../core/watch";
 import type { Reading } from "../core/timegrapher/analyze";
 import { TIRED_MAINSPRING } from "../core/oscillator/amplitude";
 
@@ -15,6 +15,9 @@ export interface Puzzle {
   /** Band the readings must stay inside (what the instrument shows, plus the physics), and for how long (sim seconds). */
   band: (r: WatchReading, tg: Reading | null) => boolean;
   holdSeconds: number;
+  /** If set, the band must be held for `holdSeconds` in each of these positions in turn, with no
+   *  failure in between (src/puzzles/progress.ts). */
+  holdIn?: Position[];
   explanation: string;
   /** Which controls this puzzle shows, in display order, left to right. State of wind is a condition
    *  of the watch, not a repair, so every puzzle shows it. */
@@ -33,7 +36,7 @@ export const PUZZLES: Puzzle[] = [
     band: (r, tg) => r.running && !!tg && Math.abs(tg.rateSecondsPerDay) <= 5,
     holdSeconds: 60,
     explanation:
-      "The regulator index had been pushed toward F. Its two pins pinch the hairspring nearer its end, so a shorter length of spring does the work; a shorter spring is stiffer and swings the balance back a little quicker on every beat. Moving the index toward S frees more spring, and the beats slow back to true time.",
+      "The regulator index had been pushed toward F. Its two pins hold the hairspring a little short of its outer end, and only the spring between the pins and the centre does the work. Toward F the pins slide away from the outer end, so the working length is shorter; a shorter spring is stiffer and swings the balance back a little quicker on every beat. Moving the index toward S slides the pins back out, more spring works, and the beats slow back to true time.",
     controls: ["regulator", "wind"],
   },
   {
@@ -71,11 +74,16 @@ export const PUZZLES: Puzzle[] = [
     id: "position-error",
     title: "Position error",
     symptom: "Keeps good time lying on the nightstand, loses on the wrist.",
-    goal: "Set <b>Position</b> to each crown position and compare <b>rate</b> with dial up. Find the heavy spot on the balance rim, then slide <b>Poising</b> to remove weight there until crown up and crown down each read within 3 s/day of dial up.",
-    faults: { unbalance: 10e-11, heavySpotDeg: 0 },
-    // Research 04: a well-milled balance has a residual of about 1.5 µg·cm = 1.5e-11 kg·m.
-    band: (r) => r.running && r.netUnbalance <= 1.5e-11,
-    holdSeconds: 60,
+    goal: "Read <b>rate</b> in each of the four crown <b>Position</b>s. At this swing, the one that loses most has the heavy spot at the bottom. Remove weight there with <b>Poising</b> (the rim reads 0° at the bottom when crown up, 90° crown right, 180° crown down, 270° crown left). Then show <b>rate</b> within ±3 s/day in every crown position, 15 seconds of ticks each.",
+    // Heavy spot at the bottom when crown down: the brief's "good dial up, bad crown down".
+    faults: { unbalance: 10e-11, heavySpotDeg: 180 },
+    // What the instrument shows must be in band in every crown position. The unbalance itself is
+    // also checked (research 04: a well-milled balance has a residual of about 1.5 µg·cm =
+    // 1.5e-11 kg·m), only so that running the watch down to the 220° crossover, where a poise error
+    // vanishes from the rate without being fixed, does not count as a repair.
+    band: (r, tg) => r.running && !!tg && Math.abs(tg.rateSecondsPerDay) <= 3 && r.netUnbalance <= 1.5e-11,
+    holdSeconds: 15,
+    holdIn: ["CU", "CR", "CD", "CL"],
     explanation:
       "One spot on the balance rim is heavier than the rest: the balance is out of poise. Lying flat, gravity pulls along the axis and the heavy spot does nothing; standing up, gravity tugs it on every swing. A heavy spot at the bottom makes the watch lose above about 220° of amplitude and gain below it, so the error even changes between a fresh wind and the evening.",
     controls: ["position", "poise", "wind"],

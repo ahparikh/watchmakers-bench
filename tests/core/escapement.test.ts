@@ -125,6 +125,22 @@ describe("stepper", () => {
   });
 });
 
+describe("resting wheel", () => {
+  // Stricter than "stationary within the solver's tolerance" above: once settled on a locking face
+  // the wheel is bit-for-bit still. (This does not guard the cost of a step; a timing assertion is
+  // flaky in a unit test, so scripts/e2e-solve.mjs checks the frame rate at real-time speed.)
+  it("does not move at all, to the last bit, while parked in lock", () => {
+    let checked = 0;
+    for (let i = 1; i < traj.length; i++) {
+      const a = traj[i - 1].pose, b = traj[i].pose;
+      if (a.phase === "lock" && b.phase === "lock" && Math.abs(a.balanceAngle) > p.liftAngle / 2 && Math.abs(b.balanceAngle) > p.liftAngle / 2 && a.contact?.stone === b.contact?.stone) {
+        if (i >= 2 && traj[i - 2].pose.phase === "lock") { expect(b.wheelAngle).toBe(a.wheelAngle); checked++; }
+      }
+    }
+    expect(checked).toBeGreaterThan(1000);
+  });
+});
+
 describe("run-down watch", () => {
   // Balance at rest in the notch, fork mid-travel, and the wheel backed off one degree from the
   // impulse face it would otherwise rest on: a pose where the wheel is free to move.

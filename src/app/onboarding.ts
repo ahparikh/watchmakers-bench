@@ -1,9 +1,10 @@
 /**
  * Onboarding for a complete beginner.
  *
- * 1. A step-by-step guide (dialog) on first visit: how a watch works, part by part, and which
+ * 1. A step-by-step guide (dialog): how a watch works, part by part, and which
  *    Bench control fixes each part. Skippable at every step; completion persists in localStorage;
- *    replayable from the strip. Content follows docs/onboarding/ciechanowski-summary.md and links
+ *    opened from the strip, never by itself: the page opens on puzzle 1 (brief: "solving a puzzle
+ *    within 30 seconds"). `?guide` in the URL opens it on load until it has been seen once. Content follows docs/onboarding/ciechanowski-summary.md and links
  *    each step to the matching section of Ciechanowski's "Mechanical Watch" as the manual.
  * 2. A strip under the title block with "Replay the guide", a "how to read the trace" explainer
  *    reachable any time, and a hint slot.
@@ -33,7 +34,7 @@ const HINTS: Record<string, string> = {
   "runs-fast": "The watch gains, so slow it. Slide <b>Regulator index</b> toward S until <b>rate</b> reads near 0.",
   "out-of-beat": "The two lines on the screen should become one. Slide <b>Beat adjustment</b> until <b>beat error</b> reads 0.0.",
   "afternoon-slump": "Slide <b>State of wind</b> from 0 h to 40 h. Watch <b>amplitude</b> fall and <b>rate</b> rise. Then answer below.",
-  "position-error": "Set <b>Position</b> to crown up, then crown down: the rate changes sign. The heavy spot is at the bottom when crown up. Remove weight there with <b>Poising</b>, about 10 µg·cm at 0°.",
+  "position-error": "Try all four crown positions. Crown down loses most, so the heavy spot is at the bottom there: 180° on the rim. Set <b>Poising</b> to about 10 µg·cm at 180°, then leave each crown position on for a few seconds.",
 };
 
 /** A lit region: a selector, or a selector with its own margin in pixels. Anchor on parts that hold
@@ -221,7 +222,7 @@ const STYLE = `
 `;
 
 const STRIP = `<div id="bench-help">
-  <button type="button" class="replay" data-act="replay">Replay the guide</button>
+  <button type="button" class="replay" data-act="replay"></button>
   <details>
     <summary>How to read the trace on the timegrapher screen</summary>
     <div class="explainer">
@@ -503,17 +504,19 @@ export function mountOnboarding(): void {
     if (performance.now() - since >= HINT_AFTER_MS) showHint(puzzleId);
   };
 
-  const openGuide = mountGuide(() => { guideOpen = false; since = performance.now(); });
+  const openGuide = mountGuide(() => { guideOpen = false; since = performance.now(); labelReplay(); });
   const startGuide = (at = 0, freePlay = true) => { guideOpen = true; openGuide(at, freePlay); };
-  strip.querySelector<HTMLButtonElement>('[data-act="replay"]')!.onclick = () => startGuide(0);
+  const replay = strip.querySelector<HTMLButtonElement>('[data-act="replay"]')!;
+  const labelReplay = () => { replay.textContent = read(GUIDE_DONE_KEY) === "1" ? "Replay the guide" : "New here? Take the guide"; };
+  labelReplay();
+  replay.onclick = () => startGuide(0);
 
   if (forced?.kind === "guide") { startGuide(forced.step, false); return; }
   if (forced?.kind === "trace") { details.open = true; return; }
   if (forced?.kind === "hint") { showHint(puzzleId); return; }
 
-  // Scripted browsers (the solve and drag scripts) load "/" and expect puzzle 1, so the guide opens
-  // for them only when the URL asks with ?guide.
-  const scripted = navigator.webdriver && !params.has("guide");
-  if (read(GUIDE_DONE_KEY) !== "1" && !scripted) startGuide(0);
+  // The page opens on puzzle 1 for everyone, people and scripts alike. The guide is one click away
+  // in the strip; a link with ?guide opens it on load until it has been seen once.
+  if (params.has("guide") && read(GUIDE_DONE_KEY) !== "1") startGuide(0);
   setInterval(tick, 1000);
 }

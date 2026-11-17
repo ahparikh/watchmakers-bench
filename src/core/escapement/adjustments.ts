@@ -7,7 +7,7 @@
 import { type EscapementParams, rad } from "./params";
 import { type Vec, add, polar, v } from "./geom2d";
 import { fixedPoints } from "./shapes";
-import type { Position } from "../watch";
+import { POSITIONS, type Position } from "../watch";
 
 export interface AdjustmentInput {
   balanceAngle: number;
@@ -50,21 +50,29 @@ export interface AdjustmentShapes {
   view: { rotationDeg: number; gravity: "into-page" | "out-of-page" | "down" };
 }
 
-/** Rim angle of the crown relative to the movement's +x axis: crown at 3 o'clock. */
-const CROWN_AT_DEG = 0;
+/** Rotation (degrees, counter-clockwise) that turns the movement so the rim angle the model calls
+ *  "down" in this position (POSITIONS[].down in src/core/watch.ts) points down the page, −90° in
+ *  y-up coordinates. One table, so the drawing cannot disagree with the physics about where a
+ *  heavy spot sits. It puts the crown at rim 180° (9 o'clock in the dial-up drawing). */
+const turnFor = (id: Position) => {
+  const down = POSITIONS.find((q) => q.id === id)!.down;
+  return ((((-90 - down) % 360) + 540) % 360) - 180; // normalised to [−180, 180)
+};
 
 const VIEW: Record<Position, AdjustmentShapes["view"]> = {
   DU: { rotationDeg: 0, gravity: "into-page" },
   DD: { rotationDeg: 0, gravity: "out-of-page" },
-  CU: { rotationDeg: 90 - CROWN_AT_DEG, gravity: "down" },
-  CR: { rotationDeg: 0 - CROWN_AT_DEG, gravity: "down" },
-  CD: { rotationDeg: -90 - CROWN_AT_DEG, gravity: "down" },
-  CL: { rotationDeg: 180 - CROWN_AT_DEG, gravity: "down" },
+  CU: { rotationDeg: turnFor("CU"), gravity: "down" },
+  CR: { rotationDeg: turnFor("CR"), gravity: "down" },
+  CD: { rotationDeg: turnFor("CD"), gravity: "down" },
+  CL: { rotationDeg: turnFor("CL"), gravity: "down" },
 };
 
 export const HAIRSPRING_TURNS = 5;
 /** Regulator and stud sit on the balance cock at this angle from +x at zero adjustment (top of the drawing). */
 export const COCK_ANGLE_DEG = 90;
+/** Angle along the outer coil between the stud and the regulator pins at zero index, degrees. */
+export const REGULATOR_REST_GAP_DEG = 24;
 /** Inertia trim of ±0.4 % draws as ±4 units of screw travel. */
 export const SCREW_PROUD_PER_TRIM = 1000;
 /** A poise cut of 10 µg·cm draws 4 units deep. */
@@ -90,18 +98,22 @@ export function adjustmentShapes(p: EscapementParams, a: AdjustmentInput): Adjus
   const stud = add(B, polar(rOuter, rad(studAngle)));
   const studTrack = { centre: B, radius: rOuter, fromDeg: COCK_ANGLE_DEG - 12, toDeg: COCK_ANGLE_DEG + 12 };
 
-  // Regulator: index lever pivoted on the balance axis; toward Fast (positive) the pins move
-  // toward the stud, shortening the active coil. Drawn 1:1 with the model's index angle.
-  const indexDeg = COCK_ANGLE_DEG + 24 - a.regulatorIndex; // pins rest 24° from the stud; Fast closes the gap
-  const pinsAt = add(B, polar(rOuter, rad(indexDeg)));
+  // Regulator: index lever pivoted on the balance axis, its pins straddling the outer coil a
+  // little short of the stud. Only the spring between the pins and the collet works, so toward
+  // Fast (positive) the pins move AWAY from the stud, shortening that length; toward Slow they
+  // move toward the stud (docs/research/01, section b). Drawn 1:1 with the model's index angle.
+  const indexDeg = COCK_ANGLE_DEG - REGULATOR_REST_GAP_DEG - a.regulatorIndex;
+  // Where the outer coil actually is at that angle: the same spiral as the polyline above.
+  const sPins = 1 - (studAngle - indexDeg) / sweep;
+  const pinsAt = add(B, polar(rInner + (rOuter - rInner) * sPins, rad(indexDeg)));
   const across = polar(2.2, rad(indexDeg));
   const regulator = {
     arm: [B, add(B, polar(R * 1.15, rad(indexDeg)))] as [Vec, Vec],
     pins: [add(pinsAt, across), add(pinsAt, scaleNeg(across))] as [Vec, Vec],
     scale: {
-      fast: add(B, polar(R * 1.25, rad(COCK_ANGLE_DEG + 24 - 4))),
-      slow: add(B, polar(R * 1.25, rad(COCK_ANGLE_DEG + 24 + 4))),
-      centre: add(B, polar(R * 1.25, rad(COCK_ANGLE_DEG + 24))),
+      fast: add(B, polar(R * 1.25, rad(COCK_ANGLE_DEG - REGULATOR_REST_GAP_DEG - 4))),
+      slow: add(B, polar(R * 1.25, rad(COCK_ANGLE_DEG - REGULATOR_REST_GAP_DEG + 4))),
+      centre: add(B, polar(R * 1.25, rad(COCK_ANGLE_DEG - REGULATOR_REST_GAP_DEG))),
     },
     indexDeg,
   };
