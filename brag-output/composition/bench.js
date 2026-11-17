@@ -21,7 +21,7 @@ var Bench = (() => {
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
   var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
-  // brag-output/composition/src/film.ts
+  // src/film.ts
   var film_exports = {};
   __export(film_exports, {
     BEAT: () => BEAT,
@@ -31,7 +31,7 @@ var Bench = (() => {
     FRAMES: () => FRAMES,
     GRAB: () => GRAB,
     RELEASE: () => RELEASE,
-    S2: () => S2,
+    S1: () => S1,
     S3: () => S3,
     S4: () => S4,
     S5: () => S5,
@@ -40,7 +40,7 @@ var Bench = (() => {
     report: () => report
   });
 
-  // src/core/oscillator/period.ts
+  // ../../src/core/oscillator/period.ts
   var SECONDS_PER_DAY = 86400;
   function activeLength(b, indexDeg) {
     return b.activeLength - b.regulatorRadius * indexDeg * Math.PI / 180;
@@ -63,7 +63,7 @@ var Bench = (() => {
     return { inertia, stiffness, activeLength: activeLengthM, regulatorRadius: regulatorRadiusM };
   }
 
-  // src/core/oscillator/amplitude.ts
+  // ../../src/core/oscillator/amplitude.ts
   var HEALTHY_MAINSPRING = { fallPerDay: 0.15, linearHours: 36, stopHours: 42 };
   var TIRED_MAINSPRING = { ...HEALTHY_MAINSPRING, fallPerDay: 0.4 };
   function torqueFraction(m, hoursSinceWind) {
@@ -88,7 +88,7 @@ var Bench = (() => {
     return s.pinCoefficient * ((s.refAmplitudeDeg - amplitudeDeg) / 10);
   }
 
-  // src/core/oscillator/bessel.ts
+  // ../../src/core/oscillator/bessel.ts
   function besselJ1(x) {
     const half = x / 2;
     let term = half;
@@ -101,14 +101,14 @@ var Bench = (() => {
     return sum;
   }
 
-  // src/core/oscillator/poise.ts
+  // ../../src/core/oscillator/poise.ts
   var G = 9.80665;
   function poiseRateSecondsPerDay(i) {
     if (i.amplitude <= 0) return 0;
     return 86400 * G * i.unbalance * Math.cos(i.heavySpotAngle) * Math.sin(i.tilt) / (i.inertia * i.omega0 * i.omega0) * (besselJ1(i.amplitude) / i.amplitude);
   }
 
-  // src/core/watch.ts
+  // ../../src/core/watch.ts
   var POSITIONS = [
     { id: "DU", label: "dial up", tilt: 0, down: 0 },
     { id: "DD", label: "dial down", tilt: 0, down: 0 },
@@ -157,7 +157,7 @@ var Bench = (() => {
     };
   }
 
-  // src/core/timegrapher/analyze.ts
+  // ../../src/core/timegrapher/analyze.ts
   function analyze(ticks, nominalPeriod2, liftAngleDeg) {
     if (ticks.length < 4) return null;
     const beat = nominalPeriod2 / 2;
@@ -184,7 +184,7 @@ var Bench = (() => {
     return { rateSecondsPerDay: rateSecondsPerDay2, beatErrorMs, amplitudeDeg, trace, beats: n };
   }
 
-  // src/core/oscillator/ticks.ts
+  // ../../src/core/oscillator/ticks.ts
   function beatIntervals(s) {
     if (Math.abs(s.beatOffset) >= s.amplitude) return [s.period, 0];
     const omega = 2 * Math.PI / s.period;
@@ -193,7 +193,7 @@ var Bench = (() => {
     return [d1, s.period - d1];
   }
 
-  // src/app/ticker.ts
+  // ../../src/app/ticker.ts
   var emptyWindow = () => ({ ticks: [], nextParity: 0, nextTime: 0 });
   function advanceTicks(win, r, untilTime, keep) {
     if (!r.running) return win;
@@ -214,7 +214,7 @@ var Bench = (() => {
     return { ticks: ticks.length > keep ? ticks.slice(ticks.length - keep) : ticks, nextParity: parity, nextTime: t };
   }
 
-  // src/core/escapement/params.ts
+  // ../../src/core/escapement/params.ts
   function derived(p) {
     const pitch = 360 / p.teeth;
     const halfEmbrace = 2.5 * pitch / 2;
@@ -226,7 +226,7 @@ var Bench = (() => {
   }
   var rad = (deg) => deg * Math.PI / 180;
 
-  // src/core/escapement/geom2d.ts
+  // ../../src/core/escapement/geom2d.ts
   var v = (x, y) => ({ x, y });
   var add = (a, b) => v(a.x + b.x, a.y + b.y);
   var sub = (a, b) => v(a.x - b.x, a.y - b.y);
@@ -240,7 +240,7 @@ var Bench = (() => {
     return add(centre, v(d.x * c - d.y * s, d.x * s + d.y * c));
   }
 
-  // src/core/escapement/shapes.ts
+  // ../../src/core/escapement/shapes.ts
   function stoneOutline(s, chords = 24) {
     const a0 = Math.atan2(s.corner.y - s.pivot.y, s.corner.x - s.pivot.x);
     let a1 = Math.atan2(s.outerEnd.y - s.pivot.y, s.outerEnd.x - s.pivot.x);
@@ -399,7 +399,7 @@ var Bench = (() => {
     };
   }
 
-  // src/view/movement.ts
+  // ../../src/view/movement.ts
   var pts = (poly) => poly.map((q) => `${q.x.toFixed(3)},${q.y.toFixed(3)}`).join(" ");
   var rad2 = (deg) => deg * Math.PI / 180;
   var PHASE_COLOUR = {
@@ -557,7 +557,7 @@ var Bench = (() => {
 </svg>`;
   }
 
-  // src/core/escapement/adjustments.ts
+  // ../../src/core/escapement/adjustments.ts
   var CROWN_AT_DEG = 0;
   var VIEW = {
     DU: { rotationDeg: 0, gravity: "into-page" },
@@ -612,7 +612,7 @@ var Bench = (() => {
   }
   var scaleNeg = (q) => v(-q.x, -q.y);
 
-  // src/view/timegrapher.ts
+  // ../../src/view/timegrapher.ts
   var fmt = (x, d) => (Math.abs(x) < 0.5 * 10 ** -d ? "" : x > 0 ? "+" : "\u2212") + Math.abs(x).toFixed(d);
   function renderTimegrapher(v2) {
     const W = 420, H = 300, pad = 36;
@@ -652,7 +652,7 @@ var Bench = (() => {
 </svg>`;
   }
 
-  // src/puzzles/index.ts
+  // ../../src/puzzles/index.ts
   var PUZZLES = [
     {
       id: "runs-fast",
@@ -708,7 +708,7 @@ var Bench = (() => {
     }
   ];
 
-  // src/view/speed.ts
+  // ../../src/view/speed.ts
   var SPEED_STOPS = [
     { value: 0.01, label: "1/100" },
     { value: 0.05, label: "1/20" },
@@ -737,7 +737,7 @@ var Bench = (() => {
     apply();
   }
 
-  // src/catalog/vintage18000.ts
+  // ../../src/catalog/vintage18000.ts
   var VINTAGE_18000 = {
     id: "vintage-18000",
     name: "Vintage manual, 18,000 bph",
@@ -760,17 +760,17 @@ var Bench = (() => {
     }
   };
 
-  // brag-output/composition/src/scenario.ts
+  // src/scenario.ts
   var FPS = 60;
   var DURATION = 24.5;
   var FRAMES = Math.round(FPS * DURATION);
-  var S2 = 3.82;
-  var S3 = 8.19;
+  var S1 = 5.45;
+  var S3 = 9.27;
   var S4 = 16.38;
   var S5 = 20.75;
-  var GRAB = 8.74;
-  var RELEASE = 10.4;
-  var SOLVED = 13.11;
+  var GRAB = 9.83;
+  var RELEASE = 11.49;
+  var SOLVED = 14.2;
   var BEAT = 0.5456;
   var BEAT0 = 3.818;
   var calibre = VINTAGE_18000;
@@ -781,8 +781,8 @@ var Bench = (() => {
   var SEG_B = { from: 20.1, to: DURATION };
   function movementTime(t) {
     if (t < SEG_B.from) {
-      if (t <= S3) return (t - BEAT0) * BEAT_LOCKED_SPEED;
-      return (S3 - BEAT0) * BEAT_LOCKED_SPEED + (t - S3) * BENCH_SPEED;
+      if (t <= S3) return (t - BEAT0) * BEAT_LOCKED_SPEED + 10 * T;
+      return (S3 - BEAT0) * BEAT_LOCKED_SPEED + 10 * T + (t - S3) * BENCH_SPEED;
     }
     return (t - (BEAT0 + 31 * BEAT)) * BEAT_LOCKED_SPEED + 40 * T;
   }
@@ -802,7 +802,7 @@ var Bench = (() => {
     return Math.round(v2 / 0.05) * 0.05;
   }
 
-  // brag-output/composition/src/film.ts
+  // src/film.ts
   var TRACE_BEATS = 300;
   var SIM_SPEEDUP = 10;
   var Sim = class {
@@ -855,7 +855,7 @@ var Bench = (() => {
   var P1 = PUZZLES[0];
   var mainUser = (t) => ({ ...ZERO_SETTINGS, regulatorIndex: regulatorAt(t) });
   var afterRelease = 30;
-  var mainSimTime = (t) => 18 * clamp(t - 0.25, 0, S2 - 0.25) + 20 * clamp(t - (S3 - 0.5), 0, RELEASE - (S3 - 0.5)) + afterRelease * Math.max(0, t - RELEASE);
+  var mainSimTime = (t) => 18 * clamp(t - (S1 + 0.25), 0, S3 - S1 - 0.25) + 20 * clamp(t - (S3 - 0.3), 0, RELEASE - (S3 - 0.3)) + afterRelease * Math.max(0, t - RELEASE);
   var mainDef = { spec: calibre.watch, faults: P1.faults, user: mainUser, simTime: mainSimTime, prefill: 0, band: P1.band, holdSeconds: P1.holdSeconds };
   {
     const probe = new Sim(mainDef);
@@ -935,7 +935,7 @@ var Bench = (() => {
     speedSlider.value = String(SPEED_STOPS.findIndex((s) => s.value === BENCH_SPEED));
     speedSlider.dispatchEvent(new Event("input"));
     $("wind-value").textContent = "0 h since wound";
-    const first = movementHtml(Math.round(S2 * FPS), main.effective(S2), main.reading(S2).amplitudeDeg, null);
+    const first = movementHtml(0, main.effective(0), main.reading(0).amplitudeDeg, null);
     const viewBox = /viewBox="([^"]+)"/.exec(first)[1];
     const { forkPivot, balanceCentre } = fixedPoints(esc);
     const [vx, , vw] = viewBox.split(" ").map(Number);
@@ -957,7 +957,7 @@ var Bench = (() => {
     };
     return (f) => {
       const frame = clamp(Math.round(f), 0, FRAMES), t = frame / FPS;
-      if (t < S2 + 0.3) put(tgHero, main.html(frame));
+      if (t > S1 - 0.6 && t < S3 + 0.3) put(tgHero, main.html(frame));
       if (t > S3 - 0.6 && t < S4 + 0.3) {
         const st = main.state(frame), eff = main.effective(t), r = main.reading(t), v2 = regulatorAt(t);
         put(benchTg, main.html(frame));
@@ -974,7 +974,7 @@ var Bench = (() => {
         cursor.style.transform = `translate(${x.toFixed(1)}px, ${(y + 3).toFixed(1)}px) scale(${dragging ? 0.88 : 1})`;
         cursor.style.opacity = (t < GRAB ? ramp(t, S3 + 0.05, S3 + 0.3) : 1 - ramp(t, RELEASE + 0.6, RELEASE + 1)).toFixed(3);
       }
-      if (t > S2 - 0.6 && t < S3 + 0.3) put(mvHero, movementHtml(frame, main.effective(t), main.reading(t).amplitudeDeg, null));
+      if (t < S1 + 0.3) put(mvHero, movementHtml(frame, main.effective(t), main.reading(t).amplitudeDeg, null));
       if (t > S5 - 0.6) put(mvOutro, movementHtml(frame, { ...ZERO_SETTINGS }, readWatch(calibre.watch, ZERO_SETTINGS).amplitudeDeg, null));
       if (t > S4 - 0.6 && t < S5 + 0.3) minis.forEach((m, i) => {
         put(miniEls[i].tg, m.sim.html(frame));
@@ -998,7 +998,7 @@ var Bench = (() => {
     return {
       afterReleaseSpeed: afterRelease,
       solvedAt,
-      main: { "1.0": at(1), "3.5": at(3.5), "8.7": at(8.7), "10.4": at(10.4), "12.0": at(12), "13.2": at(13.2), "16.0": at(16) },
+      main: { "6.5": at(6.5), "9.0": at(9), "11.5": at(11.5), "13.0": at(13), "14.3": at(14.3), "16.0": at(16) },
       minis: [0, 1, 2].map((i) => ({ "17.0": mini(i, 17), "18.8": mini(i, 18.8), "20.5": mini(i, 20.5) }))
     };
   }

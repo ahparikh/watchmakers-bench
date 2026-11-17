@@ -16,9 +16,9 @@ Create a short launch-style brag video for The Watchmaker's Bench.
 - Tagline / strongest claim: "Diagnose a live movement and regulate it, reading the timegrapher the way a watchmaker does."
 - Key UI or visual moment to recreate: puzzle 1 solved on the three-column bench: sloping trace, Regulator index dragged toward S, trace flat, "solved"
 - Copy that must appear verbatim:
+  - "Ciechanowski's Mechanical Watch shows how a watch works." and "ciechanow.ski/mechanical-watch"
+  - "The Watchmaker's Bench is about fixing one."
   - "The owner says it gains about 40 seconds a day."
-  - "The Watchmaker's Bench"
-  - "Diagnose a live movement and regulate it." (trimmed tagline)
   - "Puzzle 1 · Runs fast" with its goal text, "Regulator index", "State of wind"
   - "Why it worked" / "The regulator index had been pushed toward F."
   - "Out of beat", "Afternoon slump", "Position error"
@@ -30,7 +30,7 @@ Create a short launch-style brag video for The Watchmaker's Bench.
 - Creative direction: quiet drafting-sheet product film; an instrument, a drawing, one adjustment
 - Interpretation: few scenes, long holds, soft crossfades, no hype copy. The watch supplies the motion.
 - Angle: a watch comes in with a complaint and the video is the repair. The drawing and the instrument are the app's own renderers driven by its own sim, frame by frame, so the video shows the product working rather than a picture of it.
-- Hook: dark screen, the trace draws itself sloping, "+41 s/day", the symptom line, ticking.
+- Hook: the movement ticking on paper with a one-line credit to Ciechanowski's Mechanical Watch and the turn ("is about fixing one"); then the dark screen, the tilting trace, "+41 s/day", the symptom line, ticking.
 - Outro / punchline: "Why a watch keeps bad time, and how you fix it." and the URL.
 - Avoid:
   - Generic SaaS language
@@ -52,23 +52,24 @@ Create a short launch-style brag video for The Watchmaker's Bench.
 Use the storyboard in `brag-output/brag-plan.md` as the creative contract.
 
 Scene summary:
-1. The complaint — 3.82 s — timegrapher trace grows sloping, +41 s/day, symptom line
-2. The movement — 4.37 s — live movement drawing on paper, title, trimmed tagline, three drafting labels
-3. The repair — 8.19 s — the bench; drag Regulator index toward S; rate to 0; "solved"; "Why it worked"
+1. Where this comes from — 5.45 s — live movement drawing on paper, credit line and URL, "is about fixing one", three drafting labels
+2. The complaint — 3.82 s — timegrapher trace tilts, +41 s/day, symptom line
+3. The repair — 7.11 s — the bench; drag Regulator index toward S; rate to 0; "solved"; "Why it worked"
 4. Three more jobs — 4.37 s — three job cards with live mini traces
 5. Outro — 3.75 s — title, line, URL
 
 ## Audio
 - Audio role: warm bed with sparse professional accents
-- Audio arc: ticking watch under a quiet bed → bed alone → click, then bell on the fix → soft drops → bong and fade
+- Audio arc: bed alone → ticking watch under the bed → click, then bell on the fix → soft drops → bong and fade
 - Music: `assets/music/vol-12-bed.mp3` (first 26 s of `happy-beats-business-moves-vol-12-by-ende-dot-app.mp3`; Sascha Ende, ende.app, CC BY 4.0)
 - Music treatment: volume about 0.3, fade out over the last 1.5 s
-- Music cue guidance: bundled preset `cues/happy-beats-business-moves-vol-12-by-ende-dot-app.music-cues.json`; strong-cue locks at 8.74, 13.11, 22.93; beat grid for movement ticks, labels and cards as listed in the plan
+- Music cue guidance: bundled preset `cues/happy-beats-business-moves-vol-12-by-ende-dot-app.music-cues.json`; locks at 9.83, 14.20 (beats) and 17.47, 22.93 (strong cues); beat grid for movement ticks, labels and cards as listed in the plan
 - Audio-reactive treatment: subtle; per-frame music RMS drives the phosphor glow around the instrument screen
 - Audio-coupled moments:
-  - Scene 1 — tick bed at 5 ticks a second under the growing trace
-  - Scene 3, 8.74 — click as the cursor grabs the regulator thumb
-  - Scene 3, 13.11 — soft bell on "solved"
+  - Scene 1, 2.73 — soft drop under the second line
+  - Scene 2 — tick bed at 5 ticks a second under the tilting trace
+  - Scene 3, 9.83 — click as the cursor grabs the regulator thumb
+  - Scene 3, 14.20 — soft bell on "solved"
   - Scene 4 — one soft drop per job card
   - Scene 5, 22.93 — bong as the URL lands
 - SFX selection guidance: low high-frequency-risk files only; nothing repeated except the tick bed

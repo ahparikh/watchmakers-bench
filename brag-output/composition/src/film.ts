@@ -14,9 +14,9 @@ import { fixedPoints } from "../../../src/core/escapement/shapes";
 import { PUZZLES, type Puzzle } from "../../../src/puzzles";
 import { mountSpeedControl, SPEED_STOPS } from "../../../src/view/speed";
 import type { EscapementPose, Phase } from "../../../src/core/escapement/kinematics";
-import { FPS, DURATION, FRAMES, S2, S3, S4, S5, GRAB, RELEASE, SOLVED, BEAT, BEAT0, T, calibre, esc, BENCH_SPEED, movementTime, regulatorAt, smooth, ramp } from "./scenario";
+import { FPS, DURATION, FRAMES, S1, S3, S4, S5, GRAB, RELEASE, SOLVED, BEAT, BEAT0, T, calibre, esc, BENCH_SPEED, movementTime, regulatorAt, smooth, ramp } from "./scenario";
 
-export { FPS, DURATION, FRAMES, S2, S3, S4, S5, GRAB, RELEASE, SOLVED, BEAT, BEAT0 };
+export { FPS, DURATION, FRAMES, S1, S3, S4, S5, GRAB, RELEASE, SOLVED, BEAT, BEAT0 };
 
 const TRACE_BEATS = 300;
 /** What the app's own label says (main.ts SIM_SPEEDUP). The film's edit runs the instrument faster. */
@@ -80,14 +80,14 @@ class Sim {
 
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 
-// Puzzle 1 on the main instrument. The trace grows through scene 1, waits through scene 2,
-// and runs again on the bench. After the hand lets go, the clock runs at whatever speed puts
+// Puzzle 1 on the main instrument. The trace grows through the complaint scene and keeps
+// running on the bench. After the hand lets go, the clock runs at whatever speed puts
 // the app's real completion rule (60 instrument seconds in band) on the "solved" cue.
 const P1 = PUZZLES[0];
 const mainUser = (t: number): WatchSettings => ({ ...ZERO_SETTINGS, regulatorIndex: regulatorAt(t) });
 let afterRelease = 30;
 const mainSimTime = (t: number) =>
-  18 * clamp(t - 0.25, 0, S2 - 0.25) + 20 * clamp(t - (S3 - 0.5), 0, RELEASE - (S3 - 0.5)) + afterRelease * Math.max(0, t - RELEASE);
+  18 * clamp(t - (S1 + 0.25), 0, S3 - S1 - 0.25) + 20 * clamp(t - (S3 - 0.3), 0, RELEASE - (S3 - 0.3)) + afterRelease * Math.max(0, t - RELEASE);
 const mainDef: SimDef = { spec: calibre.watch, faults: P1.faults, user: mainUser, simTime: mainSimTime, prefill: 0, band: P1.band, holdSeconds: P1.holdSeconds };
 {
   // Instrument seconds from release to solved do not depend on the clock speed, so measure them once.
@@ -169,8 +169,8 @@ export function mount(): (frame: number) => void {
   speedSlider.dispatchEvent(new Event("input"));
   $("wind-value").textContent = "0 h since wound";
 
-  // Scene 2 drafting labels: an overlay sharing the movement's viewBox, so label anchors are scene coordinates.
-  const first = movementHtml(Math.round(S2 * FPS), main.effective(S2), main.reading(S2).amplitudeDeg, null);
+  // Intro drafting labels: an overlay sharing the movement's viewBox, so label anchors are scene coordinates.
+  const first = movementHtml(0, main.effective(0), main.reading(0).amplitudeDeg, null);
   const viewBox = /viewBox="([^"]+)"/.exec(first)![1];
   const { forkPivot, balanceCentre } = fixedPoints(esc);
   const [vx, , vw] = viewBox.split(" ").map(Number);
@@ -202,8 +202,8 @@ export function mount(): (frame: number) => void {
   return (f: number) => {
     const frame = clamp(Math.round(f), 0, FRAMES), t = frame / FPS;
 
-    // Main instrument: scene 1 hero and the bench.
-    if (t < S2 + 0.3) put(tgHero, main.html(frame));
+    // Main instrument: the complaint scene's hero and the bench.
+    if (t > S1 - 0.6 && t < S3 + 0.3) put(tgHero, main.html(frame));
     if (t > S3 - 0.6 && t < S4 + 0.3) {
       const st = main.state(frame), eff = main.effective(t), r = main.reading(t), v = regulatorAt(t);
       put(benchTg, main.html(frame));
@@ -224,8 +224,8 @@ export function mount(): (frame: number) => void {
       cursor.style.opacity = (t < GRAB ? ramp(t, S3 + 0.05, S3 + 0.3) : 1 - ramp(t, RELEASE + 0.6, RELEASE + 1.0)).toFixed(3);
     }
 
-    // Movement as hero (scene 2) and in the outro (free play: healthy watch, nothing touched).
-    if (t > S2 - 0.6 && t < S3 + 0.3) put(mvHero, movementHtml(frame, main.effective(t), main.reading(t).amplitudeDeg, null));
+    // Movement as hero (intro) and in the outro (free play: healthy watch, nothing touched).
+    if (t < S1 + 0.3) put(mvHero, movementHtml(frame, main.effective(t), main.reading(t).amplitudeDeg, null));
     if (t > S5 - 0.6) put(mvOutro, movementHtml(frame, { ...ZERO_SETTINGS }, readWatch(calibre.watch, ZERO_SETTINGS).amplitudeDeg, null));
 
     // Scene 4 instruments.
@@ -245,7 +245,7 @@ export function report() {
   const mini = (i: number, t: number) => { const g = minis[i].sim.tg(Math.round(t * FPS)); return g ? `${g.rateSecondsPerDay.toFixed(1)} s/day, ${g.amplitudeDeg.toFixed(0)}°, ${g.beatErrorMs.toFixed(2)} ms` : "no reading"; };
   return {
     afterReleaseSpeed: afterRelease, solvedAt,
-    main: { "1.0": at(1), "3.5": at(3.5), "8.7": at(8.7), "10.4": at(10.4), "12.0": at(12), "13.2": at(13.2), "16.0": at(16) },
+    main: { "6.5": at(6.5), "9.0": at(9), "11.5": at(11.5), "13.0": at(13), "14.3": at(14.3), "16.0": at(16) },
     minis: [0, 1, 2].map((i) => ({ "17.0": mini(i, 17), "18.8": mini(i, 18.8), "20.5": mini(i, 20.5) })),
   };
 }

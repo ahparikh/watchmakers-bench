@@ -12,10 +12,11 @@ export const FPS = 60;
 export const DURATION = 24.5;
 export const FRAMES = Math.round(FPS * DURATION);
 
-/** Scene boundaries, film seconds (see brag-plan.md). */
-export const S2 = 3.82, S3 = 8.19, S4 = 16.38, S5 = 20.75;
+/** Scene boundaries, film seconds (see brag-plan.md). The intro runs from 0 to S1. */
+// S1: the complaint. S3: the bench. S4: three more jobs. S5: outro.
+export const S1 = 5.45, S3 = 9.27, S4 = 16.38, S5 = 20.75;
 /** Scene 3 beats: cursor grabs the regulator, lets go, puzzle reads solved. */
-export const GRAB = 8.74, RELEASE = 10.4, SOLVED = 13.11;
+export const GRAB = 9.83, RELEASE = 11.49, SOLVED = 14.2;
 
 /** Music beat grid: vol-12 at 109.96 BPM, a beat on 3.818 s. */
 export const BEAT = 0.5456, BEAT0 = 3.818;
@@ -30,14 +31,15 @@ export const BEAT_LOCKED_SPEED = (T / 2) / (2 * BEAT);
 export const BENCH_SPEED = 0.2;
 
 /** Film-time spans in which the movement drawing is on screen. Poses are precomputed for these. */
-export const SEG_A = { from: 3.2, to: 17.0 };
+export const SEG_A = { from: 0, to: 17.0 };
 export const SEG_B = { from: 20.1, to: DURATION };
 
 /** Watch seconds elapsed on the movement view at film time t. Continuous within each segment. */
 export function movementTime(t: number): number {
   if (t < SEG_B.from) {
-    if (t <= S3) return (t - BEAT0) * BEAT_LOCKED_SPEED;
-    return (S3 - BEAT0) * BEAT_LOCKED_SPEED + (t - S3) * BENCH_SPEED;
+    // Whole periods added so the clock is positive from frame 0; ticks still land on the beat.
+    if (t <= S3) return (t - BEAT0) * BEAT_LOCKED_SPEED + 10 * T;
+    return (S3 - BEAT0) * BEAT_LOCKED_SPEED + 10 * T + (t - S3) * BENCH_SPEED;
   }
   // Outro: re-locked so a tick lands on 22.91 s, where the URL arrives.
   return (t - (BEAT0 + 31 * BEAT)) * BEAT_LOCKED_SPEED + 40 * T;
