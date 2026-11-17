@@ -76,7 +76,7 @@ Evidence in the repo:
   `docs/judgment-log.md` row 12; `src/verify/states.ts` comment on `position-crown-up`)
 - **"Looks wrong" was made measurable.** Screenshots alone miss fine geometry, so the page exposes
   named states and numeric checks computed from the same shapes it draws.
-  (`.claude/skills/verify-render/SKILL.md`; `src/verify/states.ts`, 24 named states)
+  (`.claude/skills/verify-render/SKILL.md`; `src/verify/states.ts`, 23 named states)
 
 Needs Akash:
 
