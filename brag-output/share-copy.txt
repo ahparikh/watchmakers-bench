@@ -1,0 +1,3 @@
+Ciechanowski's Mechanical Watch shows how a watch works. The Watchmaker's Bench is about fixing one: "The owner says it gains about 40 seconds a day." Diagnose a live, simulated movement and regulate it, one problem at a time: https://watchmakers-bench.pages.dev
+
+(How a watch works: https://ciechanow.ski/mechanical-watch/ · Video music: Sascha Ende, ende.app, CC BY 4.0)
