@@ -20,7 +20,7 @@
 
 | # | Time | On screen | Say (direction) | Covers |
 | --- | --- | --- | --- | --- |
-| 1 | 0:00–0:25 | The live site, puzzle 1 loaded, movement ticking | What it is in one sentence: you learn why a watch runs fast or slow by fixing one. `[AKASH: one sentence on why you picked watches and this theme.]` | Why this theme |
+| 1 | 0:00–0:25 | The live site, puzzle 1 loaded, movement ticking | What it is in one sentence: you learn why a watch runs fast or slow by fixing one. I love mechanical watches, art and science in one object, and have long admired Ciechanowski's article on how they work. | Why this theme |
 | 2 | 0:25–0:45 | Point at the three columns in turn: job card, movement, timegrapher | The drawing is the movement. The dark screen is a timegrapher, the instrument a watchmaker listens with. Three numbers: rate, amplitude, beat error. Ciechanowski already explains how a watch works; this starts where he stops. | Non-obvious |
 | 3 | 0:45–1:25 | Solve puzzle 1 live: trace slopes, +41 s/day. Drag **Regulator index** toward S. Trace flattens, hold bar fills, explanation card appears | Read the symptom aloud. Say what the sloping line means. Move the one slider. Let the card explain: shorter active hairspring, stiffer, faster. | The approach: diagnosis |
 | 4 | 1:25–2:05 | Switch to puzzle 3. Drag **State of wind** from 0 h toward 40 h; amplitude falls, rate climbs. Try the regulator. Answer the question | This one has no fix. The regulator moves the whole day up or down; it cannot flatten the curve. The answer is a new mainspring. Some errors are physics, not adjustment. | Non-obvious |
@@ -29,8 +29,8 @@
 | 7 | 3:05–3:35 | `docs/research/03`, section (b), then puzzle 3's explanation card | Judgment moment 2. Claude told the research agent the escapement makes a watch gain at low amplitude. The sources say the escapement alone makes it lose; the regulator pins cause the gain. The model was split in two and the puzzle text changed. | Physics verified before code |
 | 8 | 3:35–4:00 | The wind-slider row in the log; then drag the wind slider past 40 h on the live site, steady | Judgment moment 3. A flicker at the stop threshold. Claude blamed four things. I gave the exact repro; the cause was a readout changing width under the pointer. A script now drags every slider and fails if it jumps. | Human steering |
 | 9 | 4:00–4:25 | `CLAUDE.md` "Ownership", then `docs/handoffs.md`, then `.claude/skills/` | How it was built: four agent lanes with file ownership, a one-line handoffs file, two project skills (`verify-render`, `deploy`). Main moves only on my go-ahead. `[AKASH: one sentence on what this was like to run.]` | Approach |
-| 10 | 4:25–4:50 | Back on the live site, free play | With more time: `[AKASH: your first pick]`. From the brief: a second calibre at 28,800 bph, a date-wheel capstone puzzle, draw and club teeth so it is a true Swiss lever. | Extend |
-| 11 | 4:50–5:00 | Live site, URL visible | Time spent: `[AKASH: hours]`, against an 8-hour limit. Close on the URL. | Time spent |
+| 10 | 4:25–4:50 | Back on the live site, free play | With more time: more complex calibres (date, chronograph), a 3D view you can rotate, harder puzzles with more than one cause. | Extend |
+| 11 | 4:50–5:00 | Live site, URL visible | About 6 hours at the keyboard, against an 8-hour limit. Close on the URL. | Time spent |
 
 ## Options and cuts
 
