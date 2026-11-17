@@ -30,7 +30,7 @@
 | 8 | 3:35–4:00 | The wind-slider row in the log; then drag the wind slider past 40 h on the live site, steady | Judgment moment 3. A flicker at the stop threshold. Claude blamed four things. I gave the exact repro; the cause was a readout changing width under the pointer. A script now drags every slider and fails if it jumps. | Human steering |
 | 9 | 4:00–4:25 | `CLAUDE.md` "Ownership", then `docs/handoffs.md`, then `.claude/skills/` | How it was built: four agent lanes with file ownership, a one-line handoffs file, two project skills (`verify-render`, `deploy`). Main moves only on my go-ahead. `[AKASH: one sentence on what this was like to run.]` | Approach |
 | 10 | 4:25–4:50 | Back on the live site, free play | With more time: more complex calibres (date, chronograph), a 3D view you can rotate, harder puzzles with more than one cause. | Extend |
-| 11 | 4:50–5:00 | Live site, URL visible | About 6 hours at the keyboard, against an 8-hour limit. Close on the URL. | Time spent |
+| 11 | 4:50–5:00 | Live site, URL visible | Between 5 and 6 hours at the keyboard, against an 8-hour limit. Close on the URL. | Time spent |
 
 ## Options and cuts
 

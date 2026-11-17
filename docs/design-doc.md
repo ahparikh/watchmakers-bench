@@ -70,11 +70,25 @@ Two things were less obvious than I expected:
   a newcomer faces seven controls and three numbers with no way in.
 - **Two clocks.** The timegrapher runs at 10× so a trend shows in seconds; the movement runs in
   slow motion so one beat is visible. The screen labels the time span honestly.
-- **Parallel agents with clear lanes.** Once the spike passed I ran separate Claude agents for
-  physics and puzzles, design, onboarding, and hosting. Each owned named files, and requests
-  across lanes went into a one-line handoffs file (`docs/handoffs.md`). Two project skills cover
-  the failures that kept happening: `verify-render` (screenshots plus numeric geometry checks)
-  and `deploy` (verify, push, confirm the URL). Production moves only on my go-ahead.
+## How I built it
+
+- **Several agents, each with a lane.** Once the spike passed I ran separate Claude agents for
+  physics and puzzles, design, onboarding, and hosting. `CLAUDE.md` names the files each one owns,
+  so they could work at the same time without editing each other's code.
+- **Agents told each other what they were doing.** A request that crossed a lane went into
+  `docs/handoffs.md` as one line: who, what, why. For example, physics told design that two new
+  controls needed styling, and design told onboarding which guide wording no longer matched the
+  new layout. The file doubles as a record of who changed what.
+- **Push to deploy, one branch per idea.** The site is static on Cloudflare Pages. Pushing any
+  branch builds it at its own preview URL, so each agent worked on its own branch and I could
+  open several candidate solutions side by side before choosing one. Production follows `main`,
+  and `main` moves only on my go-ahead.
+- **A variety of skills.** Existing skills covered the routine steps: stress-testing the design
+  before building, researching the physics against sources, test-first development for the
+  simulation, front-end design guidance, and a wizard for the hosting steps only I could do. I
+  added two project skills for this project's own failure modes: `verify-render` (screenshots of
+  named states plus numeric geometry checks) and `deploy` (verify the commit, push, wait for the
+  build, confirm the URL).
 
 The tools did not catch everything, and `docs/judgment-log.md` records each miss. Two were mine to
 find. The impulse pin was drawn on the wrong side of the fork; every screenshot was frozen at the
@@ -92,7 +106,7 @@ pointer. Each fix added a test or a script so it stays fixed.
 
 ## Time spent
 
-About 6 hours at the keyboard, under the 8-hour limit. All figures are approximate.
+Between 5 and 6 hours at the keyboard, under the 8-hour limit. All figures are approximate.
 
 | Phase | Time |
 | --- | --- |
