@@ -3,7 +3,8 @@
 Every Claude Code session that built The Watchmaker's Bench, exported as HTML with
 [claude-code-transcripts](https://github.com/simonw/claude-code-transcripts). Each folder has an
 `index.html` (timeline of prompts and commits) and paginated `page-NNN.html` files. GitHub shows
-HTML as source, so clone the repo and open an `index.html` in a browser to read one.
+HTML as source; read them rendered at https://watchmakers-bench.pages.dev/transcripts/ (the build
+copies this folder into the site).
 
 | Session | What it did | Dates |
 | --- | --- | --- |
