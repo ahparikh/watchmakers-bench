@@ -14,11 +14,11 @@ copies this folder into the site).
 | [03-design](03-design/index.html) | Technical-drawing design pass, speed slider, three-column layout | Nov 3–16 |
 | [04-onboarding](04-onboarding/index.html) | First-run guide, trace explainer, hints, beginner puzzle copy | Nov 3–16 |
 | [05-launch-video](05-launch-video/index.html) | Launch video built with the brag skill | Nov 14–16 |
-| [06-code-review](06-code-review/index.html) | Deep-dive code review (snapshot; session still running at export) | Nov 16 |
-| [07-design-doc](07-design-doc/index.html) | Design rationale doc and video outline (snapshot; session still running at export) | Nov 16 |
+| [06-code-review](06-code-review/index.html) | Deep-dive code review | Nov 16 |
+| [07-design-doc](07-design-doc/index.html) | Design rationale doc and video outline | Nov 16 |
 
-Exported 2026-11-16. Sessions 01, 06 and 07 were still live, so their transcripts end at the
-moment of export. Re-run `scripts/export-transcripts.sh` for a later snapshot.
+Final export 2026-11-16. Session 01 ran the export itself, so its transcript ends just before
+this commit. Re-run `scripts/export-transcripts.sh` if any session continues.
 
 **Redactions.** The repo is public, so the export script replaces personal email addresses and
 a few passages from a private note about an unrelated project that one session printed. Nothing

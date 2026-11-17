@@ -174,7 +174,7 @@ details.continuation[open] summary { border-radius: 12px 12px 0 0; margin-bottom
 <a href="page-001.html">Next &rarr;</a>
 </div>
 
-        <p style="color: var(--text-muted); margin-bottom: 24px;">57 prompts · 726 messages · 208 tool calls · 0 commits · 12 pages</p>
+        <p style="color: var(--text-muted); margin-bottom: 24px;">60 prompts · 756 messages · 215 tool calls · 0 commits · 12 pages</p>
         
 <div class="index-item"><a href="page-001.html#msg-2026-11-02T03-20-37-339Z"><div class="index-item-header"><span class="index-item-number">#2</span><time datetime="2026-11-02T03:20:37.339Z" data-timestamp="2026-11-02T03:20:37.339Z">2026-11-02T03:20:37.339Z</time></div><div class="index-item-content"><p><command-name>/model</command-name>
             <command-message>model</command-message>
@@ -1157,7 +1157,54 @@ Onboarding session, with Akash's direct go-ahead: removed the worktree .claude/w
 <p>What remains on disk is the shared checkout on <code>main</code>, the two new agents' worktrees (<code>code-review</code> and <code>design-doc</code>), and the launch-video worktree with its unmerged branch, which is waiting on your decision.</p></div></div><button class="expand-btn">Show more</button></div></div>
 </div></div>
 <div class="index-item"><a href="page-012.html#msg-2026-11-17T07-24-52-539Z"><div class="index-item-header"><span class="index-item-number">#57</span><time datetime="2026-11-17T07:24:52.539Z" data-timestamp="2026-11-17T07:24:52.539Z">2026-11-17T07:24:52.539Z</time></div><div class="index-item-content"><p>use this project: https://github.com/simonw/claude-code-transcripts
-to help me export my claude code sessions and upload under docs in my github repo</p></div></a><div class="index-item-stats"><span>11 bash</span>
+to help me export my claude code sessions and upload under docs in my github repo</p></div></a><div class="index-item-stats"><span>13 bash</span>
+<div class="index-item-long-text"><div class="truncatable"><div class="truncatable-content"><div class="index-item-long-text-content"><p>Your sessions are exported and on GitHub: https://github.com/ahparikh/watchmakers-bench/tree/main/docs/transcripts (commit <code>868d24f</code> on <code>main</code>).</p>
+<p><strong>What's there</strong></p>
+<ul>
+<li>Eight sessions, one folder each, with an <code>index.html</code> timeline and paginated pages, plus a <code>README.md</code> index describing each session.</li>
+<li>The main physics session, hosting, design, onboarding, the launch video, and the two agents spawned today.</li>
+<li>A re-runnable script that does the whole export:</li>
+</ul>
+<pre><code>bash scripts/export-transcripts.sh
+</code></pre>
+<p><strong>Redactions, because the repo is public</strong></p>
+<ul>
+<li><strong>Your Gmail address</strong>, five occurrences.</li>
+<li><strong>A private note about an unrelated project.</strong> Early in this session I printed one of your memory files, and later quoted snippets of it while scanning. Twenty passages were replaced. Nothing else was removed.</li>
+<li>No access tokens or keys were found. The script refuses to finish if any private phrase or token-shaped string remains, and that guard caught a real leak on my second run.</li>
+<li>The list of private phrases lives outside the repo at <code>~/.config/watchmakers-bench/redactions.txt</code>, so the script itself reveals nothing. The script won't run without that file.</li>
+</ul>
+<p><strong>Things to know</strong></p>
+<ul>
+<li><strong>Three sessions are still live</strong>: this one, code-review and design-doc. Their transcripts end at the moment of export. Re-run the script once everything is finished for the final versions.</li>
+<li><strong>GitHub shows HTML as source.</strong> To read a transcript, clone the repo and open an <code>index.html</code>. I can instead serve them from the site at a <code>/transcripts/</code> path if you want reviewers to click straight through.</li>
+<li><strong>Size.</strong> The export is 26 MB, and each re-export adds roughly that much to the repo's history.</li>
+<li><strong>Not redacted:</strong> your local username in file paths, and the names of your other project folders where they appear in directory listings. Tell me if you want those scrubbed too. Anything already pushed stays in the repo's history unless it is rewritten.</li>
+</ul></div></div><button class="expand-btn">Show more</button></div></div>
+</div></div>
+<div class="index-item"><a href="page-012.html#msg-2026-11-17T07-38-43-962Z"><div class="index-item-header"><span class="index-item-number">#58</span><time datetime="2026-11-17T07:38:43.962Z" data-timestamp="2026-11-17T07:38:43.962Z">2026-11-17T07:38:43.962Z</time></div><div class="index-item-content"><p>is there an easy way for these to also be hosted at my watchmakers website?</p></div></a><div class="index-item-stats"><span>3 bash</span>
+<div class="index-item-long-text"><div class="truncatable"><div class="truncatable-content"><div class="index-item-long-text-content"><p>Yes, and it's working on a preview now: https://transcripts-site.watchmakers-bench.pages.dev/transcripts/</p>
+<p><strong>How it works.</strong> The build gained one step: after Vite builds the app, a small script copies <code>docs/transcripts</code> into the site's output and writes a landing page listing the eight sessions. The list is read from the README's table, so there's one place to edit descriptions. Nothing about the app itself changed.</p>
+<p><strong>What I checked on the preview</strong></p>
+<ul>
+<li>The landing page loads and links to each session.</li>
+<li>Session index pages and paginated pages load, and the links between pages work. Cloudflare drops the <code>.html</code> from URLs with a redirect, which the transcripts' relative links survive.</li>
+<li>The served pages carry the redactions.</li>
+<li>The app at the preview's root is unchanged, and tests pass.</li>
+</ul>
+<p><strong>Not on the main site yet.</strong> This is on branch <code>transcripts-site</code>, one commit above main. Once promoted, the address will be https://watchmakers-bench.pages.dev/transcripts/. Say the word and I'll promote it.</p>
+<p>Two things to decide alongside that:</p>
+<ul>
+<li><strong>Discoverability.</strong> Nothing on the app links to <code>/transcripts/</code>; you'd share the URL directly. A small link in the page header is a one-line change in the design lane's file if you want one.</li>
+<li><strong>Staleness.</strong> The site serves whatever was last exported. After the final sessions wrap up, re-running the export script and promoting again refreshes both GitHub and the site.</li>
+</ul></div></div><button class="expand-btn">Show more</button></div></div>
+</div></div>
+<div class="index-item"><a href="page-012.html#msg-2026-11-17T07-44-05-599Z"><div class="index-item-header"><span class="index-item-number">#59</span><time datetime="2026-11-17T07:44:05.599Z" data-timestamp="2026-11-17T07:44:05.599Z">2026-11-17T07:44:05.599Z</time></div><div class="index-item-content"><p>ok, merge it to main and push it live.</p></div></a><div class="index-item-stats"><span>1 bash</span>
+<div class="index-item-long-text"><div class="truncatable"><div class="truncatable-content"><div class="index-item-long-text-content"><p>It's live: https://watchmakers-bench.pages.dev/transcripts/</p>
+<p>Main is now at <code>8499182</code>. I checked production after the push: the app's home page, the transcripts landing page and a session index all load.</p>
+<p>Remember the two follow-ups from before. Nothing in the app links to that page yet, so share the URL directly. And three sessions were still running at export, so re-run <code>bash scripts/export-transcripts.sh</code> and promote again once they finish, to publish the final versions.</p></div></div><button class="expand-btn">Show more</button></div></div>
+</div></div>
+<div class="index-item"><a href="page-012.html#msg-2026-11-17T07-45-56-290Z"><div class="index-item-header"><span class="index-item-number">#60</span><time datetime="2026-11-17T07:45:56.290Z" data-timestamp="2026-11-17T07:45:56.290Z">2026-11-17T07:45:56.290Z</time></div><div class="index-item-content"><p>do a final rerun of the export, merge to push and push the latest versions live</p></div></a><div class="index-item-stats"><span>1 bash</span>
 </div></div>
         
 
